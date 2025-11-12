@@ -59,7 +59,7 @@ This flow describes the player's turn from start to finish.
 
 This screen appears when the player successfully declares a win.
 
-![UI Screenshot](./UI.png)
+![UI Screenshot](./WIN.png)
 
 * **Trigger:** Player clicks the `Win (Hu)` button when a winning condition is met.
 * **UI Update:**
