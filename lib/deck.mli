@@ -1,30 +1,32 @@
-(** wall.mli — 牌山模块 *)
+(** deck.mli — Deck Module *)
 
 type t
 
 val create_full : unit -> t
-(** 生成完整的一副麻将牌（136 张），包括万、筒、索与字牌各 4 张。 *)
+(** Generate a complete Mahjong tile set (136 tiles),
+    including four copies of each Man, Pin, Sou, and honor tile. *)
 
 val draw : t -> (Tile.t * t) option
-(** 从牌山顶端摸一张牌。
-    返回 [(摸到的牌, 更新后的牌山)]。
-    若牌山为空，返回 [None]。 *)
+(** Draw one tile from the top of the wall.
+    Returns [(drawn tile, updated wall)].
+    Returns [None] if the wall is empty. *)
 
 val draw_n : t -> int -> Tile.t list -> (Tile.t list * t)
-(** 连续摸 N 张牌，用于发牌阶段。
-    参数为 [当前牌山] [要摸的张数] [已摸的列表]；
-    返回 [(摸到的牌列表, 更新后的牌山)]。 *)
+(** Draw N consecutive tiles, used during the dealing phase.
+    Parameters: [current wall] [number of tiles to draw] [accumulated list];
+    Returns [(list of drawn tiles, updated wall)]. *)
 
 val shuffle : t -> t
-(** 将整副牌洗乱，返回新牌山。 *)
+(** Shuffle the entire wall and return the new shuffled wall. *)
 
 val create : unit -> t
-(** 生成并洗好的一副新牌堆 *)
+(** Generate and shuffle a new wall. *)
 
 val remaining : t -> int
-(** 获取当前牌山剩余的张数。 *)
+(** Get the number of remaining tiles in the current wall. *)
 
 
-(** 宝牌相关 *)
+(** Dora-related functions *)
 val dora_indicator : t -> Tile.t
 val next_dora_indicator : t -> t
+

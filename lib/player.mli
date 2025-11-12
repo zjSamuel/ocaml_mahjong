@@ -1,27 +1,28 @@
-(** player.mli — 玩家模块 *)
+(** player.mli — Player module *)
 
 type t
 
-(*初始化玩家*)
+(* Initialize a player *)
 val create : string -> t
-(*从玩家对象中获取玩家名字*)
+(* Get the player's name from the player object *)
 val name : t -> string
-(*从玩家对象中获取他的手牌*)
+(* Get the player's hand from the player object *)
 val hand : t -> Hand.t
-(*从牌堆中为该玩家摸一张牌*)
+(* Draw a tile from the deck for this player *)
 val draw_tile : t -> Deck.t -> (t * Deck.t) option
-(*打牌*)
+(* Discard a tile *)
 val discard_tile : t -> Tile.t -> t option
 
-(** 打印玩家信息与手牌字符串 *)
+(** Print player information and hand as a string *)
 val to_string : t -> string
 
-(** 判断是否可鸣牌 *)
+(** Determine if the player can call a meld *)
 val can_chi : t -> Tile.t -> bool
 val can_pon : t -> Tile.t -> bool
 val can_kan : t -> Tile.t -> bool
 
-(** 判定是否可立直或和牌 *)
+(** Determine if the player can declare riichi or win *)
 val can_riichi : t -> bool
 val can_tsumo : t -> bool
 val can_ron : t -> Tile.t -> bool
+

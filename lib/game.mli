@@ -1,62 +1,66 @@
-(** game.mli — 游戏流程控制模块
-    负责整体游戏状态的维护与操作，包括发牌、摸牌、打牌和轮转逻辑。
+(** game.mli — Game Flow Control Module
+    Responsible for maintaining and operating the overall game state,
+    including dealing, drawing, discarding, and turn rotation logic.
 *)
 
 type t
-(** 游戏状态的抽象类型。
-    实现中包含：
-    - [deck]：当前的牌山（Deck.t）
-    - [players]：四位玩家（Player.t array）
-    - [discard_pile]：弃牌堆
-    - [current_player_idx]：当前轮到的玩家编号 (0–3)
+(** Abstract type representing the game state.
+    The implementation includes:
+    - [deck]: the current wall (Deck.t)
+    - [players]: the four players (Player.t array)
+    - [discard_pile]: the discard pile
+    - [current_player_idx]: the index of the current player (0–3)
 *)
 
-(** {1 初始化与状态访问} *)
+(** {1 Initialization and State Access} *)
 
 val create : unit -> t
-(** 创建一个新的游戏实例。
-    - 自动生成并洗牌；
-    - 为每位玩家发 13 张牌；
-    - 当前玩家默认为 0 号。 *)
+(** Create a new game instance.
+    - Automatically generates and shuffles the deck;
+    - Deals 13 tiles to each player;
+    - Sets the current player to player 0 by default. *)
 
 val current_player : t -> Player.t
-(** 获取当前轮到的玩家。 *)
+(** Get the player whose turn it currently is. *)
 
 val to_string : t -> string
-(** 将整个游戏状态转换为字符串，包含：
-    - 各玩家手牌
-    - 弃牌堆
-    - 剩余牌数
-    - 当前玩家信息 *)
+(** Convert the entire game state to a string, including:
+    - Each player's hand
+    - The discard pile
+    - The number of remaining tiles
+    - Current player information *)
 
-(** {1 核心流程函数} *)
+(** {1 Core Game Flow Functions} *)
 
 val draw_card : t -> (t * Tile.t option)
-(** 当前玩家从牌山摸一张牌。
-    返回值：
-    - 新的游戏状态；
-    - 若成功摸到，返回 [Some tile]；
-    - 若牌山为空，返回 [None]。
+(** The current player draws a tile from the wall.
+    Returns:
+    - The updated game state;
+    - [Some tile] if a tile was successfully drawn;
+    - [None] if the wall is empty.
 *)
 
 val discard_card : t -> Tile.t -> (t * Tile.t option)
-(** 当前玩家打出指定的牌，更新弃牌堆并轮到下一位玩家。
-    返回值：
-    - 新的游戏状态；
-    - 若成功打出，返回 [Some tile]；
-    - 若打出失败（不在手牌中），返回 [None]。
+(** The current player discards a specified tile, updating the discard pile
+    and rotating to the next player.
+    Returns:
+    - The updated game state;
+    - [Some tile] if the discard was successful;
+    - [None] if the tile was not in the player's hand.
 *)
 
 val next_turn : t -> t
-(** 将当前玩家切换为下一个玩家（0 → 1 → 2 → 3 → 0）。 *)
+(** Switch the current player to the next one (0 → 1 → 2 → 3 → 0). *)
 
 val play_turn : t -> t
-(** 进行一个完整回合（摸牌 → 打牌），可用于自动模式或测试。 *)
+(** Execute a full turn (draw → discard), useful for automated mode or testing. *)
 
-(** {1 游戏状态检查} *)
+(** {1 Game State Checks} *)
 
 val is_over : t -> bool
-(** 判断游戏是否结束（例如牌山为空或某人和牌）。 *)
+(** Determine whether the game has ended
+    (e.g., the wall is empty or a player has won). *)
 
 val winner : t -> Player.t option
-(** 返回获胜玩家（若有）。当前为占位接口，可在未来加入和牌判定逻辑。 *)
+(** Return the winning player, if any.
+    Currently a placeholder interface—future implementations may include win detection logic. *)
