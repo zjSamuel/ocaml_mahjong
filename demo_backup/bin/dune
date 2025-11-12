@@ -1,6 +1,0 @@
-(executable
- (name main)
- (libraries mahjong dream)
- 
- ; --- 把下面这行加进去 ---
- (preprocess (pps lwt_ppx)))
