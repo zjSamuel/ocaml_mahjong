@@ -1,0 +1,8 @@
+lib: [
+  "_build/install/default/lib/mahjong/META"
+  "_build/install/default/lib/mahjong/dune-package"
+  "_build/install/default/lib/mahjong/opam"
+]
+doc: [
+  "_build/install/default/doc/mahjong/README.md"
+]

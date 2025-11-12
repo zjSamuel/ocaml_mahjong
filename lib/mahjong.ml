@@ -220,7 +220,4 @@ let discard_card (g: t) (tile_to_discard: Tile.t) : (t * Tile.t option) =
     } in
     (new_game_state, Some tile_to_discard)
 
-(* ... 模块的 `end` *)
 end
-
-(* 注意：最后的 let ()  = ... 主程序被删掉了！ *)
