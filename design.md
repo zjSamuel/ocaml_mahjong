@@ -86,7 +86,7 @@ This screen appears when the player successfully declares a win.
 ### D. Video Demo and Self Try
 
 To better understand how our project demo works, please see the video demonstration of this demo:
-[video](https://github.com/)
+[video]([https://github.com/](https://umn.zoom.us/rec/share/qbzaJUXcL8sxGy2DWJAPtrv5QcW5vpQ-3ntoOKIwLqwY7YbO0cOuHDIj7pOWbrnG.ESBuT94SesosIXew?startTime=1762985472000))
 
 If you want to play this Demo, use the link: 
 [game demo](https://www.figma.com/make/CWq7Ro1bW6odSBQo6PaTHC/Mahjong-Game-Board-Design?t=EORSMmgzoY9myjdc&fullscreen=1)
@@ -161,4 +161,5 @@ All module interfaces are located in the `lib/` directory of the main project.
 ## Section VII. Additional Information
 
 Japanese Mahjong Rules Reference:
+
 [Japanese Mahjong WiKi](https://en.wikipedia.org/wiki/Japanese_mahjong)
