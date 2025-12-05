@@ -1,0 +1,38 @@
+(* tile.ml *)
+type suit =
+  | Man
+  | Pin
+  | Sou
+
+type honor =
+  | East | South | West | North
+  | Red  | Green | White
+
+type t =
+  | Numbered of suit * int
+  | Honor of honor
+
+(* 辅助：为了排序和比较 *)
+let suit_to_int = function Man -> 0 | Pin -> 1 | Sou -> 2
+let honor_to_int = function
+  | East -> 0 | South -> 1 | West -> 2 | North -> 3
+  | Red -> 4 | Green -> 5 | White -> 6
+
+let compare t1 t2 =
+  match (t1, t2) with
+  | Numbered (s1, n1), Numbered (s2, n2) ->
+      let sc = compare (suit_to_int s1) (suit_to_int s2) in
+      if sc <> 0 then sc else compare n1 n2
+  | Honor h1, Honor h2 ->
+      compare (honor_to_int h1) (honor_to_int h2)
+  | Numbered _, Honor _ -> -1
+  | Honor _, Numbered _ -> 1
+
+let to_string = function
+  | Numbered (suit, n) ->
+      let s = match suit with Man -> "万" | Pin -> "筒" | Sou -> "索" in
+      string_of_int n ^ s
+  | Honor h ->
+      match h with
+      | East -> "东" | South -> "南" | West -> "西" | North -> "北"
+      | Red -> "中" | Green -> "发" | White -> "白"

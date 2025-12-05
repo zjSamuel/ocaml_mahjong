@@ -21,3 +21,9 @@ Todo:
   * better to write a timeline including what steps to do
 * Some explanation of "15% project scope: the project is not too big or too small, has enough algorithmic complexity, and has room to make a general library.", this might be included in the design.md
 * long term plan will be in `plan.md`
+
+## 12.4 update
+
+* `dune exec bin/main.exe` to start, run on localhost:3000
+* Applied basic structures include chi pon kan ron
+* Still trying efficiency calc

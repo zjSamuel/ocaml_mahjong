@@ -1,5 +1,0 @@
-lib: [
-  "_build/install/default/lib/mahjong/META"
-  "_build/install/default/lib/mahjong/dune-package"
-  "_build/install/default/lib/mahjong/opam"
-]
