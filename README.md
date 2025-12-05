@@ -27,3 +27,5 @@ Todo:
 * `dune exec bin/main.exe` to start, run on localhost:3000
 * Applied basic structures include chi pon kan ron
 * Still trying efficiency calc
+
+https://mj.fyisvia.com/discard
