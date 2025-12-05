@@ -1,2 +1,3 @@
 (library
- (name mahjong))
+ (name mahjong)
+ (instrumentation (backend bisect_ppx)))

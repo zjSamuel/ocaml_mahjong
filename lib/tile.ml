@@ -1,4 +1,3 @@
-(* tile.ml *)
 type suit =
   | Man
   | Pin
@@ -12,7 +11,6 @@ type t =
   | Numbered of suit * int
   | Honor of honor
 
-(* 辅助：为了排序和比较 *)
 let suit_to_int = function Man -> 0 | Pin -> 1 | Sou -> 2
 let honor_to_int = function
   | East -> 0 | South -> 1 | West -> 2 | North -> 3

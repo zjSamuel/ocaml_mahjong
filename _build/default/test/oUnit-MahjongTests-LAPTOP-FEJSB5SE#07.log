@@ -1,0 +1,9 @@
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#07 I: Start test MahjongTests:6:test_kan.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#07 I: Test MahjongTests:6:test_kan is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#07 I: End test MahjongTests:6:test_kan.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#07 I: Start test MahjongTests:16:test_game_perform_pon_fail.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#07 I: Test MahjongTests:16:test_game_perform_pon_fail is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#07 I: End test MahjongTests:16:test_game_perform_pon_fail.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#07 I: Start test MahjongTests:21:test_game_perform_chi.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#07 I: Test MahjongTests:21:test_game_perform_chi is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#07 I: End test MahjongTests:21:test_game_perform_chi.

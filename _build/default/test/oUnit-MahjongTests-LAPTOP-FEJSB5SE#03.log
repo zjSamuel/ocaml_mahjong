@@ -1,0 +1,12 @@
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: Start test MahjongTests:2:test_game_flow.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: Test MahjongTests:2:test_game_flow is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: End test MahjongTests:2:test_game_flow.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: Start test MahjongTests:8:test_to_string.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: Test MahjongTests:8:test_to_string is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: End test MahjongTests:8:test_to_string.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: Start test MahjongTests:15:test_bot_step.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: Test MahjongTests:15:test_bot_step is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: End test MahjongTests:15:test_bot_step.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: Start test MahjongTests:22:test_game_perform_pon.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: Test MahjongTests:22:test_game_perform_pon is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#03 I: End test MahjongTests:22:test_game_perform_pon.

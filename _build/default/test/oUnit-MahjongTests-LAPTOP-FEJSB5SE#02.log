@@ -1,0 +1,9 @@
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#02 I: Start test MahjongTests:1:test_efficiency.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#02 I: Test MahjongTests:1:test_efficiency is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#02 I: End test MahjongTests:1:test_efficiency.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#02 I: Start test MahjongTests:11:test_can_tsumo.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#02 I: Test MahjongTests:11:test_can_tsumo is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#02 I: End test MahjongTests:11:test_can_tsumo.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#02 I: Start test MahjongTests:17:test_last_discard_logic.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#02 I: Test MahjongTests:17:test_last_discard_logic is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#02 I: End test MahjongTests:17:test_last_discard_logic.

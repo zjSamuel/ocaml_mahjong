@@ -1,87 +1,117 @@
-(** game.mli — 游戏流程控制模块
-    负责整体游戏状态的维护与操作，包括发牌、摸牌、打牌和轮转逻辑。
+(** game.mli — Game Flow Control Module
+    Responsible for maintaining and operating the overall game state,
+    including dealing, drawing, discarding, and turn rotation logic.
 *)
 
 type t
-(** 游戏状态的抽象类型。
-    实现中包含：
-    - [deck]：当前的牌山（Deck.t）
-    - [players]：四位玩家（Player.t array）
-    - [discard_pile]：弃牌堆
-    - [current_player_idx]：当前轮到的玩家编号 (0–3)
+(** Abstract type representing the game state.
+    The implementation includes:
+    - [deck]: the current wall (Deck.t)
+    - [players]: the four players (Player.t array)
+    - [discard_pile]: the discard pile
+    - [current_player_idx]: the index of the current player (0–3)
 *)
 
-(** {1 初始化与状态访问} *)
+(** {1 Initialization and State Access} *)
 
 val create : unit -> t
-(** 创建一个新的游戏实例。
-    - 自动生成并洗牌；
-    - 为每位玩家发 13 张牌；
-    - 当前玩家默认为 0 号。 *)
+(** Create a new game instance.
+    - Automatically generates and shuffles the deck;
+    - Deals 13 tiles to each player;
+    - Sets the current player to player 0 by default. *)
 
 val current_player : t -> Player.t
-(** 获取当前轮到的玩家。 *)
+(** Get the player whose turn it currently is. *)
 
-val to_string : t -> string
-(** 将整个游戏状态转换为字符串，包含：
-    - 各玩家手牌
-    - 弃牌堆
-    - 剩余牌数
-    - 当前玩家信息 *)
-
-(** {1 核心流程函数} *)
+(** {2 Core Game Flow Functions} *)
 
 val draw_card : t -> (t * Tile.t option)
-(** 当前玩家从牌山摸一张牌。
-    返回值：
-    - 新的游戏状态；
-    - 若成功摸到，返回 [Some tile]；
-    - 若牌山为空，返回 [None]。
+(** The current player draws a tile from the wall.
+    Returns:
+    - The updated game state;
+    - [Some tile] if a tile was successfully drawn;
+    - [None] if the wall is empty.
 *)
 
 val discard_card : t -> Tile.t -> (t * Tile.t option)
-(** 当前玩家打出指定的牌，更新弃牌堆并轮到下一位玩家。
-    返回值：
-    - 新的游戏状态；
-    - 若成功打出，返回 [Some tile]；
-    - 若打出失败（不在手牌中），返回 [None]。
+(** The current player discards a specified tile, updating the discard pile
+    and rotating to the next player.
+    Returns:
+    - The updated game state;
+    - [Some tile] if the discard was successful;
+    - [None] if the tile was not in the player's hand.
 *)
 
 val next_turn : t -> t
-(** 将当前玩家切换为下一个玩家（0 → 1 → 2 → 3 → 0）。 *)
+(** Switch the current player to the next one (0 → 1 → 2 → 3 → 0). *)
 
-val play_turn : t -> t
-(** 进行一个完整回合（摸牌 → 打牌），可用于自动模式或测试。 *)
-
-(** {1 游戏状态检查} *)
+(** {3 Game State Checks} *)
 
 val is_over : t -> bool
-(** 判断游戏是否结束（例如牌山为空或某人和牌）。 *)
+(** Determine whether the game has ended
+    (e.g., the wall is empty or a player has won). *)
 
 val winner : t -> Player.t option
-(** 返回获胜玩家（若有）。当前为占位接口，可在未来加入和牌判定逻辑。 *)
+(** Return the winning player, if any.
+    Currently a placeholder interface—future implementations may include win detection logic. *)
 
 val remaining_tiles : t -> int
+(** Returns the number of tiles remaining in the live wall (draw pile). *)
 
 val all_players : t -> Player.t list
+(** Returns a list of all player objects (indices 0 to 3).
+    Useful for iterating over players to render the UI or debug info. *)
 
 val last_discard : t -> Tile.t option
+(** Returns the most recently discarded tile, if any.
+    This is used to determine if the main player can claim the tile (Chi/Pon/Kan/Ron). *)
+
+(** {4 Interaction and Interruptions (Ming-pai)} *)
+
 val perform_chi : t -> Tile.t -> Tile.t -> Tile.t -> (t * bool)
+(** Attempts to perform a "Chi" (Chow) action for the human player (Player 0).
+    Arguments:
+    - [target]: The discarded tile being claimed.
+    - [t1], [t2]: The two tiles from the player's hand that form the sequence with [target].
+    Returns:
+    - [(new_game_state, true)] if the action is valid and successful.
+    - [(original_state, false)] if the action is invalid. *)
+
 val perform_pon : t -> Tile.t -> (t * bool)
+(** Attempts to perform a "Pon" (Pung) action for the human player (Player 0).
+    Arguments:
+    - [target]: The discarded tile being claimed.
+    Returns [(new_game_state, true)] if the player has a matching pair and the action succeeds. *)
+
 val perform_kan : t -> Tile.t -> (t * bool)
+(** Attempts to perform a "Kan" (Kong, specifically Daiminkan) for the human player (Player 0).
+    Arguments:
+    - [target]: The discarded tile being claimed.
+    Returns [(new_game_state, true)] if successful.
+    Side effects: Removes 3 matching tiles from hand, creates a Meld, and automatically draws a Rinshan replacement tile. *)
 
-(** 当前玩家是否处于打牌阶段（牌数 >= 14） *)
+(** {5 Phase Checks} *)
+
 val can_current_player_discard : t -> bool
+(** Checks if the current player is in the "discard phase".
+    Returns [true] if the player has a full hand (effective count >= 14) and must discard. *)
 
-(** 当前玩家是否处于摸牌阶段（牌数 < 14） *)
 val can_current_player_draw : t -> bool
+(** Checks if the current player is in the "draw phase".
+    Returns [true] if the player has fewer than 14 tiles and is allowed to draw. *)
 
-(** 返回 (新游戏状态, 是否成功执行) *)
+(** {6 Bot Automation} *)
+
 val play_bot_step : t -> (t * bool)
+(** Executes a single action step (Draw -> Discard) for the current bot player.
+    Returns:
+    - [(new_state, true)] if the bot successfully played a turn.
+    - [(state, false)] if it is currently the human's turn or the deck is empty. *)
 
-(** 自动运行机器人的回合，直到轮到 Player 0 或游戏结束 *)
-val auto_play_bots : t -> t
+(** {7 Utilities} *)
 
-(** 获取当前玩家的索引 (0-3) *)
 val current_player_id : t -> int
+(** Returns the integer index (0–3) of the player whose turn it currently is. *)
 
+val debug_set_player : t -> int -> Player.t -> t
+(* just for debug to set player state *)

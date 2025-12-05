@@ -1,0 +1,12 @@
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: Start test MahjongTests:0:test_win_hand.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: Test MahjongTests:0:test_win_hand is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: End test MahjongTests:0:test_win_hand.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: Start test MahjongTests:9:test_has_full_hand.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: Test MahjongTests:9:test_has_full_hand is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: End test MahjongTests:9:test_has_full_hand.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: Start test MahjongTests:14:test_draw_and_discard.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: Test MahjongTests:14:test_draw_and_discard is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: End test MahjongTests:14:test_draw_and_discard.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: Start test MahjongTests:23:test_game_perform_kan.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: Test MahjongTests:23:test_game_perform_kan is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#01 I: End test MahjongTests:23:test_game_perform_kan.

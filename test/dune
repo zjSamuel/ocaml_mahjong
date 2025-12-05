@@ -1,2 +1,4 @@
 (test
- (name test_mahjong))
+ (name test_mahjong)
+ (libraries ounit2 mahjong)
+ (instrumentation (backend bisect_ppx)))

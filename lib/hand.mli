@@ -1,34 +1,38 @@
-(** hand.mli — 手牌结构与辅助操作 *)
+(** hand.mli — Hand Structure and Helper Operations *)
 
 type t = Tile.t list
-(** 手牌是一个 Tile 列表 *)
+(** A hand is represented as a list of tiles. *)
 
 val empty : t
-(** 空手牌 *)
+(** An empty hand. *)
 
 val add : t -> Tile.t -> t
-(** 添加一张牌并排序 *)
+(** Add a tile to the hand and sort it. *)
 
 val remove_first : t -> Tile.t -> t option
-(** 从手牌中移除第一张匹配的牌 *)
+(** Remove the first matching tile from the hand. *)
 
 val sort : t -> t
-(** 对手牌排序 *)
+(** Sort the hand. *)
 
 val to_string : t -> string
-(** 将手牌转换为字符串表示 *)
+(** Convert the hand into a string representation. *)
 
 val is_complete : t -> bool
-(*判断是否能和*)
+(** Determine whether the hand can form a winning hand (ready to win). *)
 
 val possible_sets : t -> Tile.t list list
-(*判断是否能组成搭子*)
+(** Determine possible combinations (melds or partial sets) that can be formed. *)
 
 
 val calculate_shanten : t -> int
-(** 计算向听数 (Shanten)
-    返回最小缺牌数：-1=胡牌, 0=听牌, 1=一向听... *)
+(** Calculate the Shanten number (minimum tiles needed to complete a winning hand).
+    Returns:
+    -1 = Winning hand,
+     0 = Ready hand (one tile away),
+     1 = One tile away from ready hand,
+     etc. *)
 
 val calculate_efficiency : t -> (Tile.t * int) list
-(** 牌效计算：计算打出每张牌后的进张数 (Ukeire)
-    返回列表 [(打出的牌, 进张数)]，按效率降序排列 *)
+(** Calculate tile efficiency (Ukeire) by determining the number of tiles that improve the hand after discarding each tile.
+    Returns a list of [(discarded tile, number of improving tiles)], sorted by efficiency in descending order. *)

@@ -1,1 +1,1 @@
-lib/hand.mli: Tile
+lib/hand.pp.mli: Tile

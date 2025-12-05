@@ -1,21 +1,4 @@
-(* lib/hand.ml *)
 
-(* ========================================================== *)
-(* 0. 调试工具 *)
-(* ========================================================== *)
-
-(* let debug_mode = true *)
-(* let log_out_channel = open_out "debug.log"
-
-let log fmt =
-  if debug_mode then
-    Printf.kfprintf (fun c -> flush c) log_out_channel fmt
-  else
-    Printf.ifprintf log_out_channel fmt *)
-
-(* ========================================================== *)
-(* 1. 基础类型 *)
-(* ========================================================== *)
 
 type t = Tile.t list
 
@@ -36,10 +19,6 @@ let remove_first hand tile =
   in
   aux [] hand
 
-(* ========================================================== *)
-(* 2. 向听核心 *)
-(* ========================================================== *)
-
 let max_melds_ref = ref 4
 
 let tile_to_id = function
@@ -56,21 +35,6 @@ let tile_to_id = function
         | Tile.Red -> 4
         | Tile.Green -> 5
         | Tile.White -> 6)
-
-(* let id_to_string id =
-  if id < 9 then Printf.sprintf "%dm" (id + 1)
-  else if id < 18 then Printf.sprintf "%dp" (id - 9 + 1)
-  else if id < 27 then Printf.sprintf "%ds" (id - 18 + 1)
-  else
-    match id with
-    | 27 -> "East"
-    | 28 -> "South"
-    | 29 -> "West"
-    | 30 -> "North"
-    | 31 -> "White"
-    | 32 -> "Green"
-    | 33 -> "Red"
-    | _ -> "?" *)
 
 let all_tile_types =
   let suits = [ Tile.Man; Tile.Pin; Tile.Sou ] in
@@ -167,10 +131,6 @@ let calculate_shanten hand =
   min_shanten := min !min_shanten (base - score_no_pair);
   !min_shanten
 
-(* ========================================================== *)
-(* 3. 牌效（已加入“禁止向听回退”过滤）✅ *)
-(* ========================================================== *)
-
 let calc_ukeire_count hand_13 =
   let current_shanten = calculate_shanten hand_13 in
   let effective_count = ref 0 in
@@ -198,7 +158,7 @@ let calculate_efficiency hand_14 =
         | Some hand_13 ->
             let sh13 = calculate_shanten hand_13 in
             if sh13 > base_shanten then
-              None (* ✅ 关键修复：向听回退直接删除 *)
+              None
             else
               let count = calc_ukeire_count hand_13 in
               Some (tile, count))

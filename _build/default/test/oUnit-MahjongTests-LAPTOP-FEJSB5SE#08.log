@@ -1,0 +1,6 @@
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#08 I: Start test MahjongTests:7:test_draw_discard.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#08 I: Test MahjongTests:7:test_draw_discard is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#08 I: End test MahjongTests:7:test_draw_discard.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#08 I: Start test MahjongTests:19:test_perform_kan_fail.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#08 I: Test MahjongTests:19:test_perform_kan_fail is successful.
+2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#08 I: End test MahjongTests:19:test_perform_kan_fail.
