@@ -31,7 +31,7 @@ let create () =
 
   (* 2. [作弊] 强制覆盖 Player0 的手牌为 14 张完好的胡牌 *)
   (* 牌型：111 222 333 444 55 (万) *)
-  (* let god_hand = [
+  let god_hand = [
     Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 1);
     Tile.Numbered(Tile.Man, 2); Tile.Numbered(Tile.Man, 2); Tile.Numbered(Tile.Man, 2);
     Tile.Numbered(Tile.Man, 3); Tile.Numbered(Tile.Man, 3); Tile.Numbered(Tile.Man, 3);
@@ -39,7 +39,7 @@ let create () =
     Tile.Numbered(Tile.Man, 5); Tile.Numbered(Tile.Man, 5); 
   ] in
   
-  players.(0) <- Player.debug_set_hand players.(0) god_hand; *)
+  players.(0) <- Player.debug_set_hand players.(0) god_hand;
 
   {
     deck = final_deck;
