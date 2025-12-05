@@ -36,4 +36,4 @@ val tile_count : t -> int
 val has_full_hand : t -> bool
 
 (* 添加接口 *)
-(* val get_recommendations : t -> (Tile.t * int) list *)
+val get_recommendations : t -> (Tile.t * int) list

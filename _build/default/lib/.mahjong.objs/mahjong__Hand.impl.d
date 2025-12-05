@@ -1,1 +1,1 @@
-lib/hand.ml: List String Tile
+lib/hand.ml: Array List String Tile

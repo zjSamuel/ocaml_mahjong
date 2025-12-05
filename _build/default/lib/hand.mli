@@ -25,10 +25,10 @@ val possible_sets : t -> Tile.t list list
 (*判断是否能组成搭子*)
 
 
-(* val calculate_shanten : t -> int
+val calculate_shanten : t -> int
 (** 计算向听数 (Shanten)
     返回最小缺牌数：-1=胡牌, 0=听牌, 1=一向听... *)
 
 val calculate_efficiency : t -> (Tile.t * int) list
 (** 牌效计算：计算打出每张牌后的进张数 (Ukeire)
-    返回列表 [(打出的牌, 进张数)]，按效率降序排列 *) *)
+    返回列表 [(打出的牌, 进张数)]，按效率降序排列 *)

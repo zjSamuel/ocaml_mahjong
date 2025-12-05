@@ -80,7 +80,7 @@ let render_html (game: Game.t) : string =
   let drawn_opt = Player.last_drawn human_p in
   let last_discard_opt = Game.last_discard game in
 
-  (* let suggestion_html =
+  let suggestion_html =
     if can_discard then
       let recommendations = Player.get_recommendations human_p in
       (* 取前 3 名 *)
@@ -105,8 +105,8 @@ let render_html (game: Game.t) : string =
              %s
            </div>"
           rows
-    else "" *)
-  
+    else ""
+  in
   (* B. 动作判定 (吃碰杠荣) *)
   let action_buttons_html =
     match last_discard_opt with
@@ -234,7 +234,7 @@ let render_html (game: Game.t) : string =
     </head>
     <body>
       <h1>🀄 OCaml Mahjong</h1>
-      %s <div class='info-box'>
+      %s %s<div class='info-box'>
         <div><div><strong>当前回合:</strong> %s</div><div><strong>剩余牌山:</strong> %d</div></div>
         <div style='text-align: right'><div><strong>你的副露:</strong> %s</div></div>
       </div>
@@ -259,7 +259,7 @@ let render_html (game: Game.t) : string =
     </body>
   </html>"
   auto_play_script
-  (* suggestion_html *)
+  suggestion_html (* <--- 插入这里 *)
   (Player.name (List.nth all_players current_idx))
   (Game.remaining_tiles game)
   (render_melds human_p)

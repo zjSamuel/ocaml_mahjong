@@ -163,9 +163,9 @@ let tile_count p =
 let has_full_hand p = tile_count p >= 14
 
 (* 在末尾添加 *)
-(* let get_recommendations p =
+let get_recommendations p =
   (* 只有轮到自己打牌(14张)时才计算，否则没意义 *)
   if has_full_hand p then
     Hand.calculate_efficiency p.hand
   else
-    [] *)
+    []
