@@ -1,9 +1,0 @@
-2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#04 I: Start test MahjongTests:3:test_find_chi_options.
-2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#04 I: Test MahjongTests:3:test_find_chi_options is successful.
-2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#04 I: End test MahjongTests:3:test_find_chi_options.
-2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#04 I: Start test MahjongTests:10:test_can_ron.
-2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#04 I: Test MahjongTests:10:test_can_ron is successful.
-2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#04 I: End test MahjongTests:10:test_can_ron.
-2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#04 I: Start test MahjongTests:18:test_perform_chi_fail.
-2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#04 I: Test MahjongTests:18:test_perform_chi_fail is successful.
-2025-12-05T08:22:14+00:00 LAPTOP-FEJSB5SE#04 I: End test MahjongTests:18:test_perform_chi_fail.

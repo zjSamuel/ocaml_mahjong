@@ -6,3 +6,4 @@ _coverage/
 .DS_Store
 .merlin
 dune-project.bak
+_opam/
