@@ -208,5 +208,5 @@ This section documents the current status of a standalone frontend prototype (HT
   
 ## Tests
 
-* We already implement tests on our lib, and get overall coverage more than 90%.
+* We already implement tests on our lib, nearly contain all the basic fucnctions in our project and get overall coverage more than 90%.
 ![alt text](images/78b5b6a43dcf3bf2ca8b15b0aaaf19ff.png)
