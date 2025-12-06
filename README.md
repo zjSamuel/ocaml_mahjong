@@ -16,6 +16,7 @@ The final application will serve multiple purposes:
 * **AI Opponents:** Different difficult levels AI to play against.
 
 * **A Training Tool:** A system to analyze player decisions and provide optimal play recommendations.
+* **library:** ounit2,dream,core
 ### Basic Game Concepts
 
 * **Riichi Mahjong**  
@@ -122,9 +123,9 @@ Our AI uses **ukeire** to rank discards: it recommends discarding the tile that 
 
 ## Finished functions
 
-* Basic structure including fundamental functions: `draw`, `play` (discard), and `win` (basic win check) and operations: `chi`, `pon`, `kan` and `ron`.
+* Based on the `.mli` files, develop basic structure including fundamental functions: `draw`, `play` (discard), and `win` (basic win check) and operations: `chi`, `pon`, `kan` and `ron`.
 * Basic frontend interface written with `HTML` and `Dream`
-* Basic algorithm to calculate "Shanten" and tile efficiency, which give player recommendation on what to discard by showing the contribution to Shanten
+* A complex algorithm to calculate "Shanten" and tile efficiency, which give player recommendation on what to discard by showing the contribution to Shanten
 
 ## Implementation
 
