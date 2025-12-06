@@ -161,7 +161,7 @@ Our AI uses **ukeire** to rank discards: it recommends discarding the tile that 
 ### Frontend（functional one)
 
 * **bin/main** : Write HTML to call functions from backend. The `main` file manages the creation of a game, the connection between `HTML` frontend and `Ocaml` backend(by `HTML` action and `Dream` routes ), and all the behavior of game.
-## Frontend Progress (The new frontend is **not fully functional yet** — it’s still under development!）(All code in "front_maj" file)
+## New Frontend Progress (The new frontend is **not fully functional yet** — it’s still under development!）(All code in "front_maj" file)
 
 This section documents the current status of a standalone frontend prototype (HTML/JS), used for experimenting with layout and interaction before fully wiring it to the OCaml backend.
 
@@ -201,6 +201,7 @@ This section documents the current status of a standalone frontend prototype (HT
 * Implement complex rules on score calculation. Current version can only let people know they win or not.
 * Implement better algorithms (like A*) to calculate card efficiency and generate instruction. Current version use Brute-force algorithm and only consider player's hand.
   * Apply the algorithm on AI-bots, who can play much better and even easily win human players.
+* Optimize and keep development of the new frontend.
 * Link the new frontend to the backend.
   
 ## Tests
