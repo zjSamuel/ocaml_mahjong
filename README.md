@@ -118,6 +118,7 @@ Our AI uses **ukeire** to rank discards: it recommends discarding the tile that 
 ![alt text](images/image-1.png)
 * Basic instruction on "AI assistant" to tell you what is the best choices of discard
 ![alt text](images/image-2.png)
+* To test the new frontend, use `npx http-server . -p 8080` and run on http://127.0.0.1:8080
 
 ## Finished functions
 
