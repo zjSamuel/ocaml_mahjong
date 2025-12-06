@@ -16,6 +16,97 @@ The final application will serve multiple purposes:
 * **AI Opponents:** Different difficult levels AI to play against.
 
 * **A Training Tool:** A system to analyze player decisions and provide optimal play recommendations.
+### Basic Game Concepts
+
+* **Riichi Mahjong**  
+  A Japanese variant of Mahjong, usually played by 4 players. Each player draws and discards tiles, trying to form a complete hand (similar to making sets in rummy).
+
+* **Hand / Winning Hand**  
+  A Mahjong **hand** is the set of tiles a player holds.  
+  A **winning hand** usually consists of:
+  * 4 **melds** (sets) + 1 **pair** (two identical tiles),  
+    for example: 3-4-5 of the same suit (a sequence) or 7-7-7 (a triplet), plus one pair like 2-2.
+
+* **Meld**  
+  A group of 3 or 4 tiles that form a valid set:
+  * **Sequence (shuntsu)** – three consecutive numbers in the same suit (e.g., 3-4-5 of circles).
+  * **Triplet (koutsu)** – three identical tiles (e.g., 7-7-7 of bamboo).
+  * **Quad (kan)** – four identical tiles (e.g., 9-9-9-9 of characters).
+
+* **Tatsu**  
+  An **incomplete set** that is one tile away from becoming a meld.  
+  Examples:
+  * A **sequence wait**: 2-3 of a suit (needs 1 or 4 to become 1-2-3 or 2-3-4).
+  * A **pair-like wait**: 5-5 (needs another 5 to become a triplet).
+
+### Key Japanese Action Terms
+
+These actions are available when certain tiles are discarded or drawn:
+
+* **Chi (chii)**  
+  Calling a sequence from the **player on your left** using their discard.  
+  Example: You have 3-4 of circles, the player on your left discards 5 of circles → you can call **chi** to make 3-4-5.
+
+* **Pon**  
+  Calling a **triplet** from any player’s discard.  
+  Example: You have two 7 of bamboo, someone discards another 7 of bamboo → you can call **pon** to make 7-7-7.
+
+* **Kan**  
+  Making a **quad (four of a kind)**. This can come from:
+  * Upgrading a triplet you already have when you draw the 4th tile, or
+  * Calling on another player’s discard if you have three copies.
+
+* **Tsumo**  
+  Winning by drawing the winning tile **yourself** from the wall.
+
+* **Ron**  
+  Winning by claiming a tile **discarded by someone else**.
+
+These are the buttons you see in the UI: `chi`, `pon`, `kan`, `tsumo`, and `ron`.
+
+### Tile Types and Names
+
+Japanese Mahjong uses tiles instead of playing cards. There are 34 unique tile types, with 4 copies of each (136 tiles total). They are grouped into:
+
+* **Numbered Suits (1–9 in each suit):**
+  * **Characters / Manzu (“man”“万”)** – often written with Chinese numerals (一 to 九).  
+    Example: “1-man”, “9-man”.
+  * **Circles / Pinzu (“pin”“筒”)** – circles/dots.  
+    Example: “3-pin”, “7-pin”.
+  * **Bamboo / Souzu (“sou”“索”)** – sticks/bamboo.  
+    Example: “2-sou”, “6-sou”.
+
+* **Honor Tiles:**
+  * **Winds:** East“东”, South“南”, West“西”, North“北”.
+  * **Dragons:** White“白”, Green“发”, Red“中”.
+
+In code, we treat each unique tile (e.g., 3-pin, East wind) as an element in a fixed list of 34 tile types and store how many copies you have.
+
+### Shanten, Tenpai, and Ukeire
+
+These are key concepts for our AI and analysis tools.
+
+* **Shanten**  
+  *Shanten* is “how many steps away from a winning hand” you are.  
+  * **shanten = 0** → your hand is in **tenpai**, one tile away from winning.  
+  * **shanten = 1** → you need at least 2 more tile improvements to win, and so on.  
+  * If you are already winning, the shanten value can be thought of as -1.
+
+  Our algorithm computes this number for the current hand.
+
+* **Tenpai**  
+  A hand that is **ready**—it only needs one more tile to win (shanten = 0).
+
+* **Ukeire (effective tiles)**  
+  Literally “accepted tiles.”  
+  For a given hand, **ukeire** is the **set and count of tiles that improve your hand**:
+  * Given your current tiles, we imagine drawing each possible tile type.
+  * If drawing that tile reduces shanten, it is an **effective tile**.
+  * The total number of such tiles still left in the wall is the **ukeire count**.
+  * A higher ukeire count = more ways to improve your hand = “better efficiency.”
+
+Our AI uses **ukeire** to rank discards: it recommends discarding the tile that leaves you with the highest ukeire count.
+
 
 
 ## How to play
