@@ -208,5 +208,26 @@ This section documents the current status of a standalone frontend prototype (HT
   
 ## Tests
 
-* We already implement tests on our lib, nearly contain all the basic fucnctions in our project and get overall coverage more than 90%.
+* We already implement tests on our lib, nearly contain all the basic fucnctions in our project and get overall coverage more than 90%. 
+
+#### 1. Core Algorithms & Hand Analysis
+* **Win Verification:** Validates `is_complete` and standard winning states (Shanten = -1).
+* **Efficiency Calculation:** Tests the engine's ability to recommend optimal discards (e.g., prioritizing isolated honor tiles to maximize winning probability).
+* **Shanten Logic:** Ensures accurate calculation of the distance to Tenpai/Win.
+
+#### 2. Player Mechanics & State
+* **Basic Actions:** Verifies the **Draw** (13→14 tiles) and **Discard** (14→13 tiles) cycle.
+* **Meld Execution:** Tests the logic for **Chi**, **Pon**, and **Kan**, including the precise updating of hand composition and exposed meld lists.
+* **Win Declarations:** Checks conditions for both **Ron** (winning off a discard) and **Tsumo** (winning on self-draw) based on specific tile waits.
+* **AI Suggestions:** Ensures valid move recommendations are generated only when the player holds the correct number of tiles (14).
+
+#### 3. Game Engine & Flow Control
+* **Initialization:** Verifies correct setup of 4 players, deck size (70 tiles), and starting turn (Player 0).
+* **Turn Rotation:** Tests standard turn passing logic (Player 0 → 1 → 2 → 3).
+* **Complex Interactions:**
+    * **Turn Jumping:** Verifies that **Pon** and **Kan** properly interrupt the standard turn order (e.g., if Player 0 Pons Player 2's discard, the turn jumps back to Player 0).
+    * **Rinshan (Replacement Tile):** Ensures a replacement tile is drawn immediately after a Kan.
+    * **Chi Constraints:** Ensures the turn remains with the caller after a Chi to allow for a discard.
+* **Bot Integration:** Validates that automated players can successfully execute a full turn cycle (Draw + Discard) without errors.
+* **Error Handling:** Tests the prevention of invalid moves (e.g., attempting to Chi non-sequential tiles or Pon without a pair).
 ![alt text](images/78b5b6a43dcf3bf2ca8b15b0aaaf19ff.png)
