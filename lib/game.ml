@@ -10,42 +10,71 @@ let create () =
   let deck = Deck.create () in
   let players = Array.init 4 (fun i -> Player.create (Printf.sprintf "Player%d" i)) in
   
-  (* 正常发牌流程：给每人发13张 *)
+  (* 1. 正常发牌 (先给所有人发13张随机牌) *)
   let rec deal_initial d idx =
     if idx = 4 then (d, players)
     else
       let rec draw_13 p d_inner count =
         if count = 0 then (p, d_inner)
-        else
-          match Player.draw_tile p d_inner with
-          | None -> (p, d_inner)
-          | Some (p_next, d_next_inner) -> draw_13 p_next d_next_inner (count - 1)
+        else match Player.draw_tile p d_inner with None -> (p, d_inner) | Some (np, nd) -> draw_13 np nd (count - 1)
       in
       let (p_full, d_final) = draw_13 players.(idx) d 13 in
       players.(idx) <- p_full;
       deal_initial d_final (idx + 1)
   in
-  let (final_deck, _) = deal_initial deck 0 in
+  let (deck_after_deal, _) = deal_initial deck 0 in
 
-  (* --- 🔧 God Hand Cheat Code (已加回) --- *)
-  (* 牌型：11 22 33 44 55 66 7 (万子清一色七对子听牌型) *)
-  let god_hand = [
-    Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 2);
-    Tile.Numbered(Tile.Man, 2); Tile.Numbered(Tile.Man, 3); Tile.Numbered(Tile.Man, 3);
-    Tile.Numbered(Tile.Man, 4); Tile.Numbered(Tile.Man, 4); Tile.Numbered(Tile.Man, 5);
-    Tile.Numbered(Tile.Man, 5); Tile.Numbered(Tile.Man, 6); Tile.Numbered(Tile.Man, 6);
-    Tile.Numbered(Tile.Man, 7); Tile.Numbered(Tile.Man, 7);
-  ] in
+  (* ======================================================= *)
+  (* 🔧 调试配置区 (Debug Configuration)                    *)
+  (* 修改这里来控制手牌和牌山                                *)
+  (* ======================================================= *)
   
-  (* 强制覆盖玩家0的手牌 *)
-  players.(0) <- Player.debug_set_hand players.(0) god_hand;
-  (* ------------------------------------- *)
+  (* 开关：设置为 true 启用作弊，false 则正常随机发牌 *)
+  let enable_cheat = true in
 
-  {
-    deck = final_deck;
-    players = players;
-    current_player_idx = 0;
-  }
+  if enable_cheat then (
+    (* A. 设定玩家 (Player 0) 的手牌 - 13张 *)
+    (* 示例: 纯全带么九/混老头倾向，或者你想要的七对子 *)
+    let human_hand = [
+      Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 9); 
+      Tile.Numbered(Tile.Pin, 1); Tile.Numbered(Tile.Pin, 9);
+      Tile.Numbered(Tile.Sou, 1); Tile.Numbered(Tile.Sou, 9);
+      Tile.Honor(Tile.East); Tile.Honor(Tile.South); Tile.Honor(Tile.West); 
+      Tile.Honor(Tile.North); Tile.Honor(Tile.White); Tile.Honor(Tile.Green); 
+      Tile.Honor(Tile.Red); 
+    ] in
+    players.(0) <- Player.debug_set_hand players.(0) human_hand;
+
+    (* B. 设定 AI (Player 1) 的手牌 - 13张听牌 *)
+    (* 示例: 四暗刻单骑听牌型 (111 222 333 444 5m) *)
+    let ai_hand = [
+      Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 1);
+      Tile.Numbered(Tile.Man, 2); Tile.Numbered(Tile.Man, 2); Tile.Numbered(Tile.Man, 2);
+      Tile.Numbered(Tile.Man, 3); Tile.Numbered(Tile.Man, 3); Tile.Numbered(Tile.Man, 3);
+      Tile.Numbered(Tile.Man, 4); Tile.Numbered(Tile.Man, 4); Tile.Numbered(Tile.Man, 4);
+      Tile.Numbered(Tile.Man, 5); 
+    ] in
+    players.(1) <- Player.debug_set_hand players.(1) ai_hand;
+
+    (* C. 操控牌山 (控制接下来的摸牌) *)
+    (* 注意顺序：列表的头部是"最后"放上去的牌，也就是"最先"被摸到的牌 *)
+    (* 游戏开始流程: P0摸牌 -> P0切牌 -> P1摸牌(AI) *)
+    (* 所以我们需要: 
+       1. P1 赢的牌 (AI Will Draw) -> 放在第2张
+       2. P0 随便摸的牌 (Human Will Draw) -> 放在第1张 (顶端)
+    *)
+    
+    let card_for_ai_win = Tile.Numbered(Tile.Man, 5) in  (* AI 需要 5万 自摸 *)
+    let card_for_human  = Tile.Honor(Tile.West) in       (* 给人类一张废牌 *)
+
+    (* 压栈操作: 先压 AI 的牌，再压人类的牌，这样人类先摸 *)
+    let d1 = Deck.debug_force_next deck_after_deal card_for_ai_win in
+    let final_deck = Deck.debug_force_next d1 card_for_human in
+
+    { deck = final_deck; players = players; current_player_idx = 0; }
+  ) else (
+    { deck = deck_after_deal; players = players; current_player_idx = 0; }
+  )
 (* 基础访问器 *)
 let current_player g = g.players.(g.current_player_idx)
 let current_player_id g = g.current_player_idx
@@ -165,23 +194,28 @@ let perform_kan g target =
 (* 机器人简单逻辑 *)
 let play_bot_step g =
   let p = current_player g in
+  (* 1. 机器人摸牌 *)
   match Player.draw_tile p g.deck with
   | None -> (g, false)
-  | Some (p_with_card, deck_after_draw) ->
-      match Player.last_drawn p_with_card with
-      | None -> (g, false)
-      | Some tile_to_discard ->
-          match Player.discard_tile p_with_card tile_to_discard with
-          | None -> (g, false)
-          | Some p_after_discard ->
-              let new_players = Array.copy g.players in
-              new_players.(g.current_player_idx) <- p_after_discard;
-              let next_g = next_turn { 
-                g with 
-                deck = deck_after_draw; 
-                players = new_players 
-              } in
-              (next_g, true)
+  | Some (p_drawn, deck_after_draw) ->
+      (* 2. [关键] 判断是否自摸 *)
+      if Player.can_tsumo p_drawn then
+        let nps = Array.copy g.players in
+        nps.(g.current_player_idx) <- p_drawn;
+        (* 自摸了！不切牌，不流转回合，直接返回状态，让 controller (main.ml) 处理胜利 *)
+        ({ g with deck = deck_after_draw; players = nps }, true)
+      else
+        (* 3. 没胡，执行切牌 (这里简单切摸到的牌) *)
+        match Player.last_drawn p_drawn with
+        | None -> (g, false)
+        | Some tile_to_discard ->
+            match Player.discard_tile p_drawn tile_to_discard with
+            | None -> (g, false)
+            | Some p_after_discard ->
+                let nps = Array.copy g.players in
+                nps.(g.current_player_idx) <- p_after_discard;
+                let next_g = next_turn { g with deck = deck_after_draw; players = nps } in
+                (next_g, true)
 
 let debug_set_player g idx p =
   let new_players = Array.copy g.players in

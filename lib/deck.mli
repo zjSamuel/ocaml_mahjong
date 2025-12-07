@@ -19,3 +19,5 @@ val add_dora_indicator : t -> t
 
 (** Draw a Rinshan tile (from the dead wall) *)
 val draw_rinshan : t -> (Tile.t * t) option
+
+val debug_force_next : t -> Tile.t -> t

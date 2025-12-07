@@ -132,8 +132,122 @@ let tile_count p =
 
 let has_full_hand p = tile_count p >= 14
 
-let get_recommendations p visible_counts =
+(* ========================================================== *)
+(* AI Heuristics: 静态评估函数 (用于增强版 AI)               *)
+(* ========================================================== *)
+
+(* 判断是否为幺九牌 *)
+let is_terminal_or_honor = function
+  | Tile.Honor _ -> true
+  | Tile.Numbered(_, n) -> n = 1 || n = 9
+
+(* 1. 宝牌价值评估: 统计手牌中 Dora 的数量 *)
+let eval_dora hand dora_indicators =
+  let doras = List.map Tile.next_dora dora_indicators in
+  List.fold_left (fun acc t ->
+    let matches = List.filter (fun d -> Tile.compare t d = 0) doras in
+    acc + (List.length matches)
+  ) 0 hand
+
+(* 2. 断幺九倾向评估: 如果手牌中幺九牌越少，分值越高 *)
+let eval_tanyao hand =
+  let terminals = List.filter is_terminal_or_honor hand in
+  let count = List.length terminals in
+  if count = 0 then 2.0        (* 已经纯断幺 *)
+  else if count <= 2 then 1.0  (* 很容易做成断幺 *)
+  else 0.0                     (* 幺九太多，放弃断幺 *)
+
+(* 3. 役牌倾向评估: 役牌对子/刻子加分 *)
+let eval_yakuhai hand =
+  let counts = Array.make 7 0 in
+  List.iter (function
+    | Tile.Honor h -> 
+        let idx = match h with
+          | Tile.East -> 0 | Tile.South -> 1 | Tile.West -> 2 | Tile.North -> 3
+          | Tile.Red -> 4 | Tile.Green -> 5 | Tile.White -> 6 
+        in counts.(idx) <- counts.(idx) + 1
+    | _ -> ()
+  ) hand;
+  let score = ref 0.0 in
+  (* 白发中 (Index 4, 5, 6) *)
+  for i = 4 to 6 do 
+    if counts.(i) >= 3 then score := !score +. 2.0      (* 刻子: 2分 *)
+    else if counts.(i) >= 2 then score := !score +. 1.0 (* 对子: 1分 *)
+  done;
+  !score
+
+(* 4. 染手倾向评估: 某一种花色特别多时加分 *)
+let eval_honitsu hand =
+  let m_count = ref 0 in
+  let p_count = ref 0 in
+  let s_count = ref 0 in
+  List.iter (function
+    | Tile.Numbered(Tile.Man, _) -> incr m_count
+    | Tile.Numbered(Tile.Pin, _) -> incr p_count
+    | Tile.Numbered(Tile.Sou, _) -> incr s_count
+    | Tile.Honor _ -> ()
+  ) hand;
+  let max_suit = max !m_count (max !p_count !s_count) in
+  (* 如果单一花色超过 8 张，开始给予染手加分 *)
+  if max_suit >= 8 then (float_of_int (max_suit - 7)) *. 0.5 else 0.0
+
+(* 综合评分函数: 输入切牌后的残留手牌，输出该手牌的"潜力分" *)
+let evaluate_hand_potential hand dora_inds =
+  let score = ref 0.0 in
+  (* 权重系数配置 *)
+  let w_dora = 1.5 in
+  let w_tanyao = 1.0 in
+  let w_yakuhai = 1.0 in
+  let w_honitsu = 1.0 in
+
+  score := !score +. (float_of_int (eval_dora hand dora_inds) *. w_dora);
+  score := !score +. (eval_tanyao hand *. w_tanyao);
+  score := !score +. (eval_yakuhai hand *. w_yakuhai);
+  score := !score +. (eval_honitsu hand *. w_honitsu);
+  !score
+
+(* ========================================================== *)
+(* AI API Implementation                                      *)
+(* ========================================================== *)
+
+(** [纯净版] 仅基于进张数 (Ukeire) 排序 *)
+let get_recommendations_pure p visible_counts =
   if has_full_hand p then
+    (* 直接调用 Hand 模块的 A* 算法，不做额外处理 *)
     Hand.get_recommendations_astar p.hand visible_counts
-  else
+  else 
+    []
+
+(** [增强版] 进张数 + 潜力分 混合排序 *)
+let get_recommendations_enhanced p visible_counts dora_indicators =
+  if has_full_hand p then
+    (* 1. 获取所有不退向听的切牌候补 *)
+    let candidates = Hand.get_recommendations_astar p.hand visible_counts in
+    
+    (* 2. 对每个候补进行评分 *)
+    let weighted_candidates = 
+      List.map (fun (tile_to_discard, ukeire) ->
+        (* 模拟切掉这张牌后，剩下的 13 张牌 *)
+        let hand_after_discard = 
+          match Hand.remove_first p.hand tile_to_discard with
+          | Some h -> h
+          | None -> p.hand 
+        in
+        
+        (* 计算剩余手牌的潜力 *)
+        let potential_score = evaluate_hand_potential hand_after_discard dora_indicators in
+        
+        (* 最终分 = 进张数 (速度) + 潜力分 (打点) *)
+        (* 这里 1.0 是速度的权重，可以调节 *)
+        let final_score = (float_of_int ukeire) +. potential_score in
+        
+        (tile_to_discard, ukeire, final_score)
+      ) candidates
+    in
+    
+    (* 3. 按最终分数降序排序 *)
+    List.sort (fun (_, _, s1) (_, _, s2) -> 
+      compare s2 s1 
+    ) weighted_candidates 
+  else 
     []

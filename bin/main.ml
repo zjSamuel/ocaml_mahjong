@@ -98,31 +98,34 @@ let render_html (game: Game.t) : string =
   let last_discard_opt = Game.last_discard game in
 
   (* AI 助手区域：集成全场可见牌统计 *)
-  let suggestion_html =
+let suggestion_html =
     if can_discard then
       let visible = Game.get_visible_counts game 0 in
-      let recommendations = Player.get_recommendations human_p visible in
+      let indicators = Game.get_dora_indicators game in
+      
+      (* 调用增强版 API *)
+      let recommendations = Player.get_recommendations_enhanced human_p visible indicators in
       let top3 = List.filteri (fun i _ -> i < 3) recommendations in
       
       let rows = 
-        top3 |> List.map (fun (tile, count) ->
+        top3 |> List.map (fun (tile, count, score) -> (* 注意这里解构了 score *)
           Printf.sprintf 
             "<div style='display:flex; align-items:center; margin-bottom:8px; background:rgba(0,0,0,0.2); padding:5px; border-radius:4px;'>
                <span style='margin-right:10px; color:#a29bfe; font-weight:bold; font-size:0.9em;'>Discard:</span>
                <span class='tile static small' style='margin:0;'>%s</span>
                <div style='margin-left:auto; text-align:right;'>
-                 <div style='color:#ccc; font-size:0.8em;'>Ukeire</div>
-                 <div style='color:#fdcb6e; font-weight:bold; font-size:1.1em;'>%d</div>
+                 <div style='color:#ccc; font-size:0.8em;'>Ukeire: <span style='color:#fff'>%d</span></div>
+                 <div style='color:#fdcb6e; font-weight:bold; font-size:0.9em;'>Score: %.1f</div>
                </div>
              </div>"
-            (Tile.to_string tile) count
+            (Tile.to_string tile) count score
         ) |> String.concat ""
       in
       if rows = "" then "" 
       else 
         Printf.sprintf 
           "<div class='sidebar-panel'>
-             <div class='sidebar-header'>💡 AI Assistant</div>
+             <div class='sidebar-header'>💡 AI Assistant (Enhanced)</div>
              %s
            </div>"
           rows
@@ -354,9 +357,29 @@ let () =
     Dream.post "/bot_move" (fun req -> 
       let g = !game_state_ref in 
       if Game.current_player_id g <> 0 then (
+        (* 执行机器人的一步 *)
         let (ng, _) = Game.play_bot_step g in 
         game_state_ref := ng; 
-        Dream.redirect req "/"
+        
+        (* [新增] 检查机器人是否赢了 *)
+        match Game.winner ng with
+        | Some winner_p ->
+            (* 机器人胡牌！计算番数并显示 *)
+            let indicators = Game.get_dora_indicators ng in
+            let score_res = Hand.calculate_score (Player.hand winner_p) (Player.melds winner_p) indicators Tile.East Tile.East true false in
+            
+            let score_html = match score_res with
+              | Some res -> render_score_result res
+              | None -> "<div style='color:red'>役なし (No Yaku)</div>"
+            in
+            
+            Dream.html (Printf.sprintf 
+              "<html><head><meta charset='utf-8'><title>Bot Win!</title><style>body { background-color: #2d3436; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; } .card { background: #333; display: inline-block; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); } h1 { color: #d63031; font-size: 3em; } a { color: #74b9ff; font-size: 1.2em; text-decoration: none; border: 1px solid #74b9ff; padding: 10px 30px; border-radius: 30px; } a:hover { background: #74b9ff; color: #2d3436; }</style></head><body><div class='card'><h1>🤖 Bot Tsumo!</h1><h2>Winner: %s</h2><div style='font-size: 2em; margin: 30px 0;'>%s</div>%s<p style='margin-top: 50px;'><a href='/new_game'>Play Again</a></p></div></body></html>"
+              (Player.name winner_p) (Hand.to_string (Player.hand winner_p)) score_html)
+        
+        | None ->
+            (* 没有赢，继续游戏 *)
+            Dream.redirect req "/"
       ) else (
         Dream.redirect req "/"
       )

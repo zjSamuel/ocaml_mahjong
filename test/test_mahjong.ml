@@ -181,12 +181,12 @@ let test_get_recommendations _ =
   let empty_visible = Array.make 34 0 in
 
   (* 传入第二个参数 *)
-  let recs = Player.get_recommendations p_14 empty_visible in
+  let recs = Player.get_recommendations_pure p_14 empty_visible in
   assert_bool "Should return recommendations list" (List.length recs > 0);
   
   let p_13 = create_player_with_hand 
     ["1m";"2m";"3m"; "4m";"5m";"6m"; "7m";"8m";"9m"; "1p";"2p";"3p"; "4p"] in
-  let recs_empty = Player.get_recommendations p_13 empty_visible in
+  let recs_empty = Player.get_recommendations_pure p_13 empty_visible in
   assert_equal 0 (List.length recs_empty) ~msg:"Should return empty list for 13 tiles"let test_game_create _ =
   let g = Game.create () in
   assert_equal 0 (Game.current_player_id g) ~msg:"Game should start with Player 0";

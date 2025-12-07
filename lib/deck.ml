@@ -65,3 +65,7 @@ let draw_rinshan deck =
   (* 简单实现：从王牌末尾拿一张，同时把摸牌堆顶的一张补进王牌以保持14张王牌 *)
   (* 注意：标准规则比较复杂，这里简化为从 draw_pile 拿 *)
   draw deck
+
+(* [新增] 调试用：强制将一张牌放在牌山顶端 *)
+let debug_force_next deck tile =
+  { deck with draw_pile = tile :: deck.draw_pile }
