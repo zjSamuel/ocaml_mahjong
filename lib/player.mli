@@ -7,14 +7,6 @@ type t
 (** Abstract type representing a player.
     Contains the player's name, current hand, discard history, and meld status. *)
 
-type meld = 
-  | Chi of Tile.t * Tile.t * Tile.t
-  | Pon of Tile.t * Tile.t * Tile.t
-  | Kan of Tile.t * Tile.t * Tile.t * Tile.t
-(** Represents a meld (open set/naki) of tiles:
-    - [Chi (t1, t2, target)]: A sequence of three consecutive tiles (Chow).
-    - [Pon (target, t, t)]: Three identical tiles (Pung).
-    - [Kan (target, t, t, t)]: Four identical tiles (Kong, specifically Daiminkan). *)
 
 (** {1 Initialization and Accessors} *)
 
@@ -37,8 +29,7 @@ val last_drawn : t -> Tile.t option
 (** Returns the tile most recently drawn by the player, if any.
     This is used for UI highlighting and to determine "Tsumogiri" (discarding the drawn tile). *)
 
-val melds : t -> meld list
-(** Returns the list of melds (open sets) the player has made. *)
+val melds : t -> Hand.meld list (* 使用 Hand.meld *)(** Returns the list of melds (open sets) the player has made. *)
 
 val tile_count : t -> int
 (** Calculates the effective tile count of the player.
@@ -115,3 +106,5 @@ val to_string : t -> string
 val debug_set_hand : t -> Tile.t list -> t
 (** [Debug Only] Forcibly sets the player's hand to a specific list of tiles.
     Used for testing winning conditions or specific scenarios. *)
+
+val add_drawn_tile : t -> Tile.t -> t

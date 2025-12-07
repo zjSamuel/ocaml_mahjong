@@ -74,7 +74,7 @@ let test_perform_chi _ =
       assert_equal "2万" (Tile.to_string (List.hd (Player.hand new_p)));
       assert_equal 1 (List.length (Player.melds new_p));
       match List.hd (Player.melds new_p) with
-      | Player.Chi _ -> ()
+      | Hand.Chi _ -> ()
       | _ -> assert_failure "Meld type should be Chi"
 
 let test_pon _ =
@@ -89,7 +89,7 @@ let test_pon _ =
       assert_equal 1 (List.length (Player.hand new_p));
       assert_equal "发" (Tile.to_string (List.hd (Player.hand new_p)));
       match List.hd (Player.melds new_p) with
-      | Player.Pon _ -> ()
+      | Hand.Pon _ -> ()
       | _ -> assert_failure "Meld type should be Pon"
 
 let test_kan _ =
@@ -103,7 +103,7 @@ let test_kan _ =
   | Some new_p ->
       assert_equal 0 (List.length (Player.hand new_p));
       match List.hd (Player.melds new_p) with
-      | Player.Kan _ -> ()
+      | Hand.Kan _ -> ()
       | _ -> assert_failure "Meld type should be Kan"
 
 let test_draw_discard _ =

@@ -117,3 +117,6 @@ val debug_set_player : t -> int -> Player.t -> t
 (* just for debug to set player state *)
 
 val get_visible_counts : t -> int -> int array
+
+
+val get_dora_indicators : t -> Tile.t list

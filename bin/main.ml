@@ -1,6 +1,7 @@
 (* bin/main.ml *)
 open Mahjong
 
+(* 辅助函数：解析牌字符串 *)
 let parse_tile_str s =
   let suits = [Tile.Man; Tile.Pin; Tile.Sou] in
   let nums = [1; 2; 3; 4; 5; 6; 7; 8; 9] in
@@ -12,20 +13,65 @@ let parse_tile_str s =
 
   List.find_opt (fun t -> Tile.to_string t = s) all_unique_tiles
 
+(* 全局游戏状态 *)
 let game_state_ref = ref (Game.create ())
 
+(* [新增] 渲染役种和分数结果 *)
+let render_score_result (res: Hand.Score.result) =
+  let yaku_rows = 
+    res.yaku_list 
+    |> List.map (function 
+      | Hand.Score.MenzenTsumo -> "门前清自摸和 (1番)"
+      | Hand.Score.Riichi -> "立直 (1番)"
+      | Hand.Score.Ippatsu -> "一发 (1番)"
+      | Hand.Score.Pinfu -> "平和 (1番)"
+      | Hand.Score.Tanyao -> "断幺九 (1番)"
+      | Hand.Score.Iipeiko -> "一盃口 (1番)"
+      | Hand.Score.Yakuhai s -> Printf.sprintf "役牌: %s (1番)" s
+      | Hand.Score.Rinshan -> "岭上开花 (1番)"
+      | Hand.Score.Sanshoku -> "三色同顺 (2番/1番)"
+      | Hand.Score.Itsu -> "一气通贯 (2番/1番)"
+      | Hand.Score.Chanta -> "混全带幺九 (2番/1番)"
+      | Hand.Score.Chiitoitsu -> "七对子 (2番)"
+      | Hand.Score.Toitoi -> "对对和 (2番)"
+      | Hand.Score.Sanankou -> "三暗刻 (2番)"
+      | Hand.Score.Sankantsu -> "三杠子 (2番)"
+      | Hand.Score.SanshokuDoukou -> "三色同刻 (2番)"
+      | Hand.Score.Honroutou -> "混老头 (2番)"
+      | Hand.Score.Shousangen -> "小三元 (2番)"
+      | Hand.Score.Honitsu -> "混一色 (3番/2番)"
+      | Hand.Score.Junchan -> "纯全带幺九 (3番/2番)"
+      | Hand.Score.Ryanpeiko -> "二盃口 (3番)"
+      | Hand.Score.Chinitsu -> "清一色 (6番/5番)"
+      | Hand.Score.Dora n -> Printf.sprintf "宝牌 (%d番)" n
+    ) 
+    |> List.map (fun s -> Printf.sprintf "<div style='margin: 4px 0; border-bottom: 1px dashed #555; padding-bottom: 2px;'>%s</div>" s)
+    |> String.concat ""
+  in
+  Printf.sprintf 
+    "<div style='background:#2d3436; padding:20px; border-radius:10px; margin:20px auto; width:320px; text-align:left; border: 1px solid #fdcb6e; box-shadow: 0 5px 15px rgba(0,0,0,0.5);'>
+       <h3 style='color:#fdcb6e; border-bottom:1px solid #636e72; padding-bottom:10px; margin-top:0; display:flex; justify-content:space-between;'>
+         <span>Total Han:</span> <span style='font-size:1.2em;'>%d</span>
+       </h3>
+       <div style='color: #dfe6e9; font-size: 0.95em;'>%s</div>
+       <div style='margin-top: 15px; text-align: right; color: #b2bec3; font-size: 0.8em;'>Fu: %d</div>
+     </div>"
+    res.han yaku_rows res.fu
+
+(* [修改] 渲染副露：使用 Hand.Chi/Pon/Kan *)
 let render_melds (p: Player.t) =
   Player.melds p
   |> List.map (function
-      | Player.Chi(a, b, c) ->
+      | Hand.Chi(a, b, c) ->
           Printf.sprintf "<div class='meld-box'><span class='tile static small'>%s</span><span class='tile static small'>%s</span><span class='tile static small active-meld'>%s</span></div>" (Tile.to_string a) (Tile.to_string b) (Tile.to_string c)
-      | Player.Pon(a, _, _) ->
+      | Hand.Pon(a, _, _) ->
           Printf.sprintf "<div class='meld-box'><span class='tile static small'>%s</span><span class='tile static small'>%s</span><span class='tile static small active-meld'>%s</span></div>" (Tile.to_string a) (Tile.to_string a) (Tile.to_string a)
-      | Player.Kan(a, _, _, _) ->
+      | Hand.Kan(a, _, _, _) ->
           Printf.sprintf "<div class='meld-box'><span class='tile static small'>%s</span><span class='tile static small'>%s</span><span class='tile static small'>%s</span><span class='tile static small active-meld'>%s</span></div>" (Tile.to_string a) (Tile.to_string a) (Tile.to_string a) (Tile.to_string a)
     )
   |> String.concat " "
 
+(* 渲染单张牌 *)
 let render_single_tile (tile: Tile.t) (idx: int) (is_clickable: bool) (is_new: bool) =
   let tile_str = Tile.to_string tile in
   let class_str = if is_clickable then "tile clickable" else "tile static" in
@@ -36,6 +82,7 @@ let render_single_tile (tile: Tile.t) (idx: int) (is_clickable: bool) (is_new: b
   else
     Printf.sprintf "<div class='%s' style='%s'>%s</div>" class_str style_extra tile_str
 
+(* 渲染主界面 *)
 let render_html (game: Game.t) : string =
   let all_players = Game.all_players game in
   let human_p = List.nth all_players 0 in 
@@ -50,9 +97,10 @@ let render_html (game: Game.t) : string =
   let drawn_opt = Player.last_drawn human_p in
   let last_discard_opt = Game.last_discard game in
 
+  (* AI 助手区域：集成全场可见牌统计 *)
   let suggestion_html =
     if can_discard then
-      let visible = Game.get_visible_counts game 0 in (* 0 是人类玩家ID *)
+      let visible = Game.get_visible_counts game 0 in
       let recommendations = Player.get_recommendations human_p visible in
       let top3 = List.filteri (fun i _ -> i < 3) recommendations in
       
@@ -82,6 +130,7 @@ let render_html (game: Game.t) : string =
       "<div class='sidebar-panel' style='opacity:0.5'><div class='sidebar-header'>💡 AI Assistant</div><div style='padding:10px; font-size:0.9em; color:#888;'>Waiting for draw...</div></div>"
   in
 
+  (* 操作按钮区域 *)
   let action_buttons_html =
     match last_discard_opt with
     | None -> ""
@@ -119,6 +168,7 @@ let render_html (game: Game.t) : string =
     else ""
   in
 
+  (* 渲染手牌 *)
   let indexed_hand = List.mapi (fun i t -> (t, i + 1)) full_hand in
   let (main_part, special_part) =
     match (can_discard, drawn_opt) with
@@ -146,6 +196,14 @@ let render_html (game: Game.t) : string =
 
   let draw_button = if is_my_turn then (if can_draw then "<form action='/draw' method='POST'><button type='submit' class='action-btn draw-btn'>🖐 Draw</button></form>" else "<div class='info-msg'>Please discard a tile</div>") else "<div class='info-msg' style='color:#b2bec3'>Waiting for other players...</div>" in
   let tsumo_button = if is_my_turn && Player.can_tsumo human_p then "<form action='/win' method='POST'><button class='win-btn'>⚡ Tsumo!</button></form>" else "" in
+
+  (* 宝牌指示牌 *)
+  let indicators = Game.get_dora_indicators game in
+  let dora_html = 
+    indicators 
+    |> List.map (fun t -> Printf.sprintf "<span class='tile static small' style='border-color:#fdcb6e;'>%s</span>" (Tile.to_string t)) 
+    |> String.concat "" 
+  in
 
   let debug_html = 
     Game.all_players game
@@ -205,7 +263,7 @@ let render_html (game: Game.t) : string =
         
         <div class='game-center'>
           %s <div class='info-box'>
-            <div><div><strong>Current Turn:</strong> %s</div><div><strong>Remaining Tiles:</strong> %d</div></div>
+            <div><div><strong>Current Turn:</strong> %s</div><div><strong>Remaining Tiles:</strong> %d</div><div style='display:flex; align-items:center;'><strong>Dora:</strong> <div style='display:inline-block; margin-left:10px;'>%s</div></div></div>
             <div style='text-align: right'><div><strong>Your Melds:</strong> %s</div></div>
           </div>
 
@@ -245,6 +303,7 @@ let render_html (game: Game.t) : string =
   auto_play_script
   (Player.name (List.nth all_players current_idx))
   (Game.remaining_tiles game)
+  dora_html
   (render_melds human_p)
   others_discards_html
   action_buttons_html
@@ -355,6 +414,7 @@ let () =
       | _ -> Dream.redirect req "/"
     );
 
+    (* [修改] 荣和：调用 calculate_score 并显示役种 *)
     Dream.post "/win_ron" (fun request ->
       match%lwt Dream.form ~csrf:false request with
       | `Ok form ->
@@ -369,24 +429,38 @@ let () =
                   let loser_id = (curr_id - 1 + 4) mod 4 in
                   let loser = List.nth all_p loser_id in
 
+                  let full_hand = Hand.add (Player.hand winner) tile in
+                  let indicators = Game.get_dora_indicators game in
+                  
+                  let score_html = 
+                    match Hand.calculate_score full_hand (Player.melds winner) indicators Tile.East Tile.East false false with
+                    | Some res -> render_score_result res
+                    | None -> "<div style='color:#ff7675; font-size:1.5em; margin:20px;'>⚠️ No Yaku (诈和)</div>"
+                  in
+
                   Dream.html (Printf.sprintf 
-                      "<html><head><meta charset='utf-8'><title>Ron!</title><style>body { background-color: #2d3436; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding-top: 50px; } .card { background: #333; display: inline-block; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); } h1 { color: #fdcb6e; font-size: 4em; margin-bottom: 10px; text-shadow: 0 0 20px #e17055; } h2 { color: #00b894; margin-top: 0; } .loser { color: #ff7675; font-weight: bold; font-size: 1.2em; margin: 20px 0; } a { color: #74b9ff; text-decoration: none; font-size: 1.2em; border: 1px solid #74b9ff; padding: 10px 30px; border-radius: 30px; transition: 0.3s; } a:hover { background: #74b9ff; color: #2d3436; } </style></head><body><div class='card'><h1>⚡ Ron! ⚡</h1><h2>🎉 Winner: %s</h2><div class='loser'>💥 Loser: %s</div><div style='margin: 30px 0; font-size: 1.5em; letter-spacing: 2px;'>%s <span style='border: 2px solid #fdcb6e; padding: 2px 8px; border-radius: 4px; margin-left: 10px;'>%s</span></div><p style='margin-top: 50px;'><a href='/new_game'>Play Again</a></p></div></body></html>" 
-                       (Player.name winner) (Player.name loser) (Hand.to_string (Player.hand winner)) (Tile.to_string tile))
+                      "<html><head><meta charset='utf-8'><title>Ron!</title><style>body { background-color: #2d3436; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding-top: 50px; } .card { background: #333; display: inline-block; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 600px; } h1 { color: #fdcb6e; font-size: 4em; margin-bottom: 10px; text-shadow: 0 0 20px #e17055; } .loser { color: #ff7675; font-weight: bold; font-size: 1.2em; margin: 20px 0; } a { color: #74b9ff; text-decoration: none; font-size: 1.2em; border: 1px solid #74b9ff; padding: 10px 30px; border-radius: 30px; transition: 0.3s; } a:hover { background: #74b9ff; color: #2d3436; } </style></head><body><div class='card'><h1>⚡ Ron! ⚡</h1><h2>🎉 Winner: %s</h2><div class='loser'>💥 Loser: %s</div><div style='margin: 30px 0; font-size: 1.5em;'>%s <span style='border: 2px solid #fdcb6e; padding: 2px 8px; border-radius: 4px; margin-left: 10px; background:#fdcb6e; color:#2d3436;'>%s</span></div> %s <p style='margin-top: 50px;'><a href='/new_game'>Play Again</a></p></div></body></html>" 
+                       (Player.name winner) (Player.name loser) (Hand.to_string (Player.hand winner)) (Tile.to_string tile) score_html)
               | None -> Dream.redirect request "/")
          | None -> Dream.redirect request "/")
       | _ -> Dream.redirect request "/"
     );
 
+    (* [修改] 自摸：调用 calculate_score 并显示役种 *)
     Dream.post "/win" (fun _ ->
       let game = !game_state_ref in
       let all_p = Game.all_players game in
       let p0 = List.nth all_p 0 in
-      if Player.can_tsumo p0 then
-        Dream.html (Printf.sprintf 
-          "<html><body style='text-align: center; padding-top: 50px; background-color: #2d3436; color: white;'><h1 style='color: #d63031; font-size: 3em;'>🎉 役满！自摸！ 🎉</h1><h2>获胜者: %s</h2><div style='font-size: 2em; margin: 20px;'>%s</div><p><a href='/new_game' style='color: #74b9ff'>再来一局</a></p></body></html>"
-           (Player.name p0) (Hand.to_string (Player.hand p0)))
-      else
-        Dream.html "<h1>Cannot Win</h1><a href='/'>Back</a>"
+      let indicators = Game.get_dora_indicators game in
+      
+      match Hand.calculate_score (Player.hand p0) (Player.melds p0) indicators Tile.East Tile.East true false with
+      | Some res -> 
+           let score_html = render_score_result res in
+           Dream.html (Printf.sprintf 
+             "<html><head><meta charset='utf-8'><title>Tsumo!</title><style>body { background-color: #2d3436; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding-top: 50px; } .card { background: #333; display: inline-block; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 600px; } h1 { color: #d63031; font-size: 4em; margin-bottom: 10px; text-shadow: 0 0 20px #e17055; } a { color: #74b9ff; text-decoration: none; font-size: 1.2em; border: 1px solid #74b9ff; padding: 10px 30px; border-radius: 30px; transition: 0.3s; } a:hover { background: #74b9ff; color: #2d3436; } </style></head><body><div class='card'><h1>🎉 Tsumo! 🎉</h1><h2>Winner: %s</h2><div style='font-size: 2em; margin: 30px 0;'>%s</div>%s<p style='margin-top: 50px;'><a href='/new_game'>Play Again</a></p></div></body></html>"
+              (Player.name p0) (Hand.to_string (Player.hand p0)) score_html)
+      | None ->
+        Dream.html "<html><body style='background:#2d3436; color:white; text-align:center; padding-top:50px;'><h1>⚠️ Cannot Win (No Yaku / 没役)</h1><p>Check your hand again.</p><a href='/' style='color:#74b9ff'>Back</a></body></html>"
     );
 
     Dream.get "/new_game" (fun req -> 

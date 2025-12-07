@@ -1,3 +1,4 @@
 (library
  (name mahjong)
+ (flags (:standard -w -27-32))  ; 新增这一行：忽略警告 27 和 32
  (instrumentation (backend bisect_ppx)))

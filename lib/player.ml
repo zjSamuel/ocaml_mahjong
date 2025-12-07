@@ -1,14 +1,9 @@
-type meld = 
-  | Chi of Tile.t * Tile.t * Tile.t (* 顺子 *)
-  | Pon of Tile.t * Tile.t * Tile.t (* 刻子 *)
-  | Kan of Tile.t * Tile.t * Tile.t * Tile.t (* 杠 *)
-
 type t = {
   name : string;
   hand : Hand.t;
   discards : Tile.t list;
   last_drawn : Tile.t option;
-  melds : meld list;
+  melds : Hand.meld list; (* 使用 Hand.meld *)
 }
 
 let create name =
@@ -68,19 +63,18 @@ let can_ron (p: t) (target: Tile.t) : bool =
 let can_tsumo (p: t) : bool =
   Hand.is_complete p.hand
 
+(* 示例修改 perform_chi *)
 let perform_chi (p: t) (target: Tile.t) (t1: Tile.t) (t2: Tile.t) : t option =
-  if not (is_sequence t1 t2 target) then 
-    None
-  else
+  if not (is_sequence t1 t2 target) then None else
     match Hand.remove_first p.hand t1 with
     | None -> None
-    | Some hand_minus_t1 ->
-        match Hand.remove_first hand_minus_t1 t2 with
-        | None -> None
-        | Some final_hand ->
-            let sorted = sort_tiles [t1; t2; target] in
-            let m = match sorted with [a;b;c] -> Chi(a,b,c) | _ -> Chi(t1,t2,target) in
-            Some { p with hand = final_hand; melds = m :: p.melds; last_drawn = None }
+    | Some h1 -> match Hand.remove_first h1 t2 with
+      | None -> None
+      | Some h2 ->
+          let sorted = sort_tiles [t1; t2; target] in
+          (* [关键] 这里必须是 Hand.Chi *)
+          let m = match sorted with [a;b;c] -> Hand.Chi(a,b,c) | _ -> Hand.Chi(t1,t2,target) in 
+          Some { p with hand = h2; melds = m :: p.melds; last_drawn = None }
 
 let perform_pon (p: t) (target: Tile.t) : t option =
   match Hand.remove_first p.hand target with
@@ -89,7 +83,7 @@ let perform_pon (p: t) (target: Tile.t) : t option =
       match Hand.remove_first h1 target with
       | None -> None
       | Some h2 ->
-          let m = Pon(target, target, target) in
+          let m = Hand.Pon(target, target, target) in
           Some { p with hand = h2; melds = m :: p.melds; last_drawn = None }
 
 let perform_kan (p: t) (target: Tile.t) : t option =
@@ -104,7 +98,7 @@ let perform_kan (p: t) (target: Tile.t) : t option =
   match remove_3 p.hand 3 [] with
   | None -> None
   | Some new_hand ->
-       let m = Kan(target, target, target, target) in
+       let m = Hand.Kan(target, target, target, target) in
        Some { p with hand = new_hand; melds = m :: p.melds; last_drawn = None }
 
 let draw_tile p deck =
@@ -119,9 +113,11 @@ let discard_tile p tile =
   | Some new_hand -> 
       Some { p with hand = new_hand; discards = tile :: p.discards; last_drawn = None }
 
+let add_drawn_tile p tile = { p with hand = Hand.add p.hand tile; last_drawn = Some tile }
+
 let to_string p =
   let melds_str = p.melds |> List.map (function
-    | Chi(a,b,c) -> Printf.sprintf "[吃 %s%s%s]" (Tile.to_string a) (Tile.to_string b) (Tile.to_string c)
+    | Hand.Chi(a,b,c) -> Printf.sprintf "[吃 %s%s%s]" (Tile.to_string a) (Tile.to_string b) (Tile.to_string c)
     | Pon(a,_,_) -> Printf.sprintf "[碰 %s]" (Tile.to_string a)
     | Kan(a,_,_,_) -> Printf.sprintf "[杠 %s]" (Tile.to_string a)
   ) |> String.concat " " in

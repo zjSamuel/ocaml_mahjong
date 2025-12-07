@@ -1,46 +1,41 @@
 (** hand.mli — Hand Structure and Helper Operations *)
 
-(** Crucial Fix: Expose the type as a list so other modules can iterate over it *)
 type t = Tile.t list
-(** A hand is represented as a list of tiles. *)
+
+(* [新增] 将 meld 定义移动到这里 *)
+type meld = 
+  | Chi of Tile.t * Tile.t * Tile.t
+  | Pon of Tile.t * Tile.t * Tile.t
+  | Kan of Tile.t * Tile.t * Tile.t * Tile.t
 
 val empty : t
-(** An empty hand. *)
-
 val add : t -> Tile.t -> t
-(** Add a tile to the hand and sort it. *)
-
 val remove_first : t -> Tile.t -> t option
-(** Remove the first matching tile from the hand. *)
-
 val sort : t -> t
-(** Sort the hand. *)
-
 val to_string : t -> string
-(** Convert the hand into a string representation. *)
-
 val is_complete : t -> bool
-(** Determine whether the hand can form a winning hand (ready to win). *)
-
 val possible_sets : t -> Tile.t list list
-(** Determine possible combinations (melds or partial sets) that can be formed. *)
-
 val tile_to_id : Tile.t -> int
-(** Convert a tile to its integer ID (0-33). *)
-
-(** Calculate the Shanten number (minimum tiles needed to complete a winning hand).
-    Returns:
-    -1 = Winning hand,
-     0 = Ready hand (one tile away),
-     1 = One tile away from ready hand,
-     etc. *)
 val calculate_shanten : t -> int
-
-(** Calculate tile efficiency (Ukeire) by determining the number of tiles that improve the hand after discarding each tile.
-    Returns a list of [(discarded tile, number of improving tiles)], sorted by efficiency in descending order. *)
 val calculate_efficiency : t -> int array -> (Tile.t * int) list
-
-(** Calculate discard recommendations using A* algorithm for Shanten calculation.
-    Includes logic for Seven Pairs. 
-    Returns a list of [(discarded tile, number of improving tiles)]. *)
 val get_recommendations_astar : t -> int array -> (Tile.t * int) list
+
+module Score : sig
+  type yaku = 
+    | MenzenTsumo | Riichi | Ippatsu
+    | Pinfu | Tanyao | Iipeiko | Yakuhai of string | Rinshan
+    | Sanshoku | Itsu | Chanta | Chiitoitsu | Toitoi | Sanankou | Sankantsu | SanshokuDoukou | Honroutou | Shousangen
+    | Honitsu | Junchan | Ryanpeiko
+    | Chinitsu
+    | Dora of int
+  
+  type result = {
+    han: int;
+    yaku_list: yaku list;
+    fu: int;
+    points: int;
+  }
+end
+
+(* [修改] 第二个参数改为 meld list (不再是 Player.meld list) *)
+val calculate_score : t -> meld list -> Tile.t list -> Tile.honor -> Tile.honor -> bool -> bool -> Score.result option
