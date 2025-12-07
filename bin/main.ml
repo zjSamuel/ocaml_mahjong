@@ -52,7 +52,8 @@ let render_html (game: Game.t) : string =
 
   let suggestion_html =
     if can_discard then
-      let recommendations = Player.get_recommendations human_p in
+      let visible = Game.get_visible_counts game 0 in (* 0 是人类玩家ID *)
+      let recommendations = Player.get_recommendations human_p visible in
       let top3 = List.filteri (fun i _ -> i < 3) recommendations in
       
       let rows = 

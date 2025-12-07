@@ -34,3 +34,12 @@ let to_string = function
       match h with
       | East -> "东" | South -> "南" | West -> "西" | North -> "北"
       | Red -> "中" | Green -> "发" | White -> "白"
+let next_dora t =
+  match t with
+  | Numbered(suit, n) -> 
+      if n = 9 then Numbered(suit, 1) else Numbered(suit, n + 1)
+  | Honor h ->
+      let next_h = match h with
+        | East -> South | South -> West | West -> North | North -> East
+        | White -> Green | Green -> Red | Red -> White
+      in Honor next_h

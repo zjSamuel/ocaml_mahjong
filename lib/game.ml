@@ -27,15 +27,15 @@ let create () =
 
   (* 2. [作弊] 强制覆盖 Player0 的手牌为 14 张完好的胡牌 *)
   (* 牌型：111 222 333 444 55 (万) *)
-  (* let god_hand = [
-    Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 1);
-    Tile.Numbered(Tile.Man, 2); Tile.Numbered(Tile.Man, 2); Tile.Numbered(Tile.Man, 2);
-    Tile.Numbered(Tile.Man, 3); Tile.Numbered(Tile.Man, 3); Tile.Numbered(Tile.Man, 3);
-    Tile.Numbered(Tile.Man, 4); Tile.Numbered(Tile.Man, 4); Tile.Numbered(Tile.Man, 4);
-    Tile.Numbered(Tile.Man, 5); Tile.Numbered(Tile.Man, 5); 
+  let god_hand = [
+    Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 1); Tile.Numbered(Tile.Man, 2);
+    Tile.Numbered(Tile.Man, 2); Tile.Numbered(Tile.Man, 3); Tile.Numbered(Tile.Man, 3);
+    Tile.Numbered(Tile.Man, 4); Tile.Numbered(Tile.Man, 4); Tile.Numbered(Tile.Man, 5);
+    Tile.Numbered(Tile.Man, 5); Tile.Numbered(Tile.Man, 6); Tile.Numbered(Tile.Man, 6);
+    Tile.Numbered(Tile.Man, 7); 
   ] in
   
-  players.(0) <- Player.debug_set_hand players.(0) god_hand; *)
+  players.(0) <- Player.debug_set_hand players.(0) god_hand;
 
   {
     deck = final_deck;
@@ -171,3 +171,34 @@ let debug_set_player g idx p =
   let new_players = Array.copy g.players in
   new_players.(idx) <- p;
   { g with players = new_players }
+(* lib/game.ml *)
+
+(* 辅助：把 Tile 列表加入计数表 *)
+let add_tiles_to_counts counts tiles =
+  List.iter (fun t ->
+    let id = Hand.tile_to_id t in
+    counts.(id) <- counts.(id) + 1
+  ) tiles
+
+(* 获取全场可见牌的计数表 (对于视角玩家 viewer_idx 来说) *)
+let get_visible_counts g viewer_idx =
+  let counts = Array.make 34 0 in
+  
+  (* 1. 遍历所有玩家的 弃牌区 (Discards) 和 副露区 (Melds) *)
+  Array.iter (fun p ->
+    (* 加弃牌 *)
+    add_tiles_to_counts counts (Player.discards p);
+    
+    (* 加副露 *)
+    List.iter (function
+      | Player.Chi(t1, t2, t3) -> add_tiles_to_counts counts [t1; t2; t3]
+      | Player.Pon(t1, t2, t3) -> add_tiles_to_counts counts [t1; t2; t3]
+      | Player.Kan(t1, t2, t3, t4) -> add_tiles_to_counts counts [t1; t2; t3; t4]
+    ) (Player.melds p)
+  ) g.players;
+
+  (* 2. 加上视角玩家自己的手牌 (暗牌对别人不可见，对自己可见) *)
+  let viewer = g.players.(viewer_idx) in
+  add_tiles_to_counts counts (Player.hand viewer);
+  
+  counts

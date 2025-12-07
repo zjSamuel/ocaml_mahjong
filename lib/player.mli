@@ -104,7 +104,7 @@ val perform_kan : t -> Tile.t -> t option
 
 (** {1 AI and Utilities} *)
 
-val get_recommendations : t -> (Tile.t * int) list
+val get_recommendations : t -> int array -> (Tile.t * int) list
 (** Calculates tile efficiency to suggest the best discard.
     - Only valid when the player has a full hand (14 tiles).
     - Returns a list of [(tile_to_discard, ukeire_count)], sorted by efficiency (descending). *)

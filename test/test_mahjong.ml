@@ -28,20 +28,25 @@ let test_win_hand _ =
 
 let test_efficiency _ =
   let hand = make_hand ["1m";"1m";"1m"; "2p";"2p";"2p"; "3s";"3s";"3s"; "4z";"4z";"4z"; "5z"; "6z"] in
-  let recommendations = Hand.calculate_efficiency hand in
+  
+  (* 新增：创建一个空的可见牌数组，因为函数签名变了 *)
+  let empty_visible = Array.make 34 0 in
+  
+  (* 修改：传入 empty_visible 作为第二个参数 *)
+  let recommendations = Hand.calculate_efficiency hand empty_visible in
+  
   let (top_tile, count) = List.hd recommendations in
   assert_bool "Should recommend discard" (count > 0);
   match top_tile with
   | Tile.Honor _ -> ()
   | _ -> assert_failure "Should recommend discarding isolated honor tile"
 
-  let test_game_flow _ =
+let test_game_flow _ =
   let g = Game.create () in
   assert_equal 0 (Game.current_player_id g) ~msg:"Initial player should be 0";
   assert_bool "Deck should not be empty" (Game.remaining_tiles g > 0);
   let p = Game.current_player g in
   assert_equal 13 (Player.tile_count p) ~msg:"Player should start with 13 tiles"
-
 let create_player_with_hand hand_strs =
   let p = Player.create "TestBot" in
   Player.debug_set_hand p (make_hand hand_strs)
@@ -166,18 +171,23 @@ let test_can_tsumo _ =
     ["1m";"1m";"1m"; "2m";"2m";"2m"; "3m";"3m"; "3m"; "4m";"4m"; "4m"; "5m"; "7m"] in
   assert_bool "Should not tsumo" (not (Player.can_tsumo p_lose))
 
+(* 在 test/test_mahjong.ml 中找到这个函数并修改 *)
+
 let test_get_recommendations _ =
   let p_14 = create_player_with_hand 
     ["1m";"2m";"3m"; "4m";"5m";"6m"; "7m";"8m";"9m"; "1p";"2p";"3p"; "4p"; "9s"] in
-  let recs = Player.get_recommendations p_14 in
+  
+  (* 创建空的可见牌数组 *)
+  let empty_visible = Array.make 34 0 in
+
+  (* 传入第二个参数 *)
+  let recs = Player.get_recommendations p_14 empty_visible in
   assert_bool "Should return recommendations list" (List.length recs > 0);
   
   let p_13 = create_player_with_hand 
     ["1m";"2m";"3m"; "4m";"5m";"6m"; "7m";"8m";"9m"; "1p";"2p";"3p"; "4p"] in
-  let recs_empty = Player.get_recommendations p_13 in
-  assert_equal 0 (List.length recs_empty) ~msg:"Should return empty list for 13 tiles"
-
-let test_game_create _ =
+  let recs_empty = Player.get_recommendations p_13 empty_visible in
+  assert_equal 0 (List.length recs_empty) ~msg:"Should return empty list for 13 tiles"let test_game_create _ =
   let g = Game.create () in
   assert_equal 0 (Game.current_player_id g) ~msg:"Game should start with Player 0";
   assert_equal 70 (Game.remaining_tiles g) ~msg:"Remaining tiles should be 70";

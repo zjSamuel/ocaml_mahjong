@@ -3,9 +3,8 @@ let () = Random.self_init ()
 
 type t = {
   draw_pile : Tile.t list;
-  _dead_wall : Tile.t list;
-  _dora_index : int; 
-  (* not applied *)
+  dead_wall : Tile.t list; (* 王牌区 *)
+  dora_indicators_count : int; (* 当前开了几张宝牌指示牌 *)
 }
 
 let create_full_list () =
@@ -23,7 +22,7 @@ let shuffle_list lst =
   let sorted = List.sort (fun (a, _) (b, _) -> compare a b) tagged in
   List.map snd sorted
 
-let create_full () =
+let create () =
   let all = shuffle_list (create_full_list ()) in
   let rec split n acc l =
     if n = 0 then (List.rev acc, l)
@@ -31,10 +30,9 @@ let create_full () =
       | [] -> (List.rev acc, [])
       | h :: t -> split (n - 1) (h :: acc) t
   in
-  let (draw, dead) = split (List.length all - 14) [] all in
-  { draw_pile = draw; _dead_wall = dead; _dora_index = 0 }
-
-let create = create_full
+  (* 留 14 张作为王牌 (Dead Wall) *)
+  let (dead, draw) = split 14 [] all in
+  { draw_pile = draw; dead_wall = dead; dora_indicators_count = 1 }
 
 let draw deck =
   match deck.draw_pile with
@@ -43,12 +41,27 @@ let draw deck =
 
 let remaining deck = List.length deck.draw_pile
 
-let shuffle deck = 
-  { deck with draw_pile = shuffle_list deck.draw_pile }
+(* 获取当前的宝牌指示牌列表 *)
+let get_dora_indicators deck =
+  let rec loop n acc =
+    if n = 0 then List.rev acc
+    else 
+      (* 王牌区的第 0, 2, 4, 6, 8 张是表宝牌指示牌 *)
+      let idx = (n - 1) * 2 in
+      if idx < List.length deck.dead_wall then
+        loop (n - 1) (List.nth deck.dead_wall idx :: acc)
+      else acc
+  in
+  loop deck.dora_indicators_count []
 
-(* dont remove! not apply dora! *)
-(* let dora_indicator deck =
-  List.nth deck.dead_wall (deck.dora_index * 2) 
+(* 开杠：增加一张宝牌指示牌 *)
+let add_dora_indicator deck =
+  if deck.dora_indicators_count < 5 then
+    { deck with dora_indicators_count = deck.dora_indicators_count + 1 }
+  else deck
 
-let next_dora_indicator deck =
-  { deck with dora_index = deck.dora_index + 1 } *)
+(* 岭上开花：从王牌区摸牌 *)
+let draw_rinshan deck =
+  (* 简单实现：从王牌末尾拿一张，同时把摸牌堆顶的一张补进王牌以保持14张王牌 *)
+  (* 注意：标准规则比较复杂，这里简化为从 draw_pile 拿 *)
+  draw deck

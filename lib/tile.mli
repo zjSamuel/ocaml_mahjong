@@ -18,3 +18,6 @@ val compare : t -> t -> int
 val to_string : t -> string
 (** Convert a mahjong tile to a string (e.g., "5Man", "East") *)
 
+val next_dora : t -> t
+(** Given a dora indicator, return the actual dora tile.
+    e.g., 1Man -> 2Man, 9Man -> 1Man, North -> East, Red -> White. *)

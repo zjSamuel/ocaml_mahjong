@@ -115,3 +115,5 @@ val current_player_id : t -> int
 
 val debug_set_player : t -> int -> Player.t -> t
 (* just for debug to set player state *)
+
+val get_visible_counts : t -> int -> int array

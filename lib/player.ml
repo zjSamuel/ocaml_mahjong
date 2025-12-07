@@ -136,8 +136,8 @@ let tile_count p =
 
 let has_full_hand p = tile_count p >= 14
 
-let get_recommendations p =
+let get_recommendations p visible_counts =
   if has_full_hand p then
-    Hand.calculate_efficiency p.hand
+    Hand.get_recommendations_astar p.hand visible_counts
   else
     []
