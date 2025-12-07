@@ -42,13 +42,13 @@ let test_efficiency _ =
   | _ -> assert_failure "Should recommend discarding isolated honor tile"
 
 let test_game_flow _ =
-  let g = Game.create () in
+  let g = Game.create Player.Medium in
   assert_equal 0 (Game.current_player_id g) ~msg:"Initial player should be 0";
   assert_bool "Deck should not be empty" (Game.remaining_tiles g > 0);
   let p = Game.current_player g in
   assert_equal 13 (Player.tile_count p) ~msg:"Player should start with 13 tiles"
 let create_player_with_hand hand_strs =
-  let p = Player.create "TestBot" in
+  let p = Player.create "TestBot" Player.Medium in
   Player.debug_set_hand p (make_hand hand_strs)
 
 let test_find_chi_options _ =
@@ -107,7 +107,7 @@ let test_kan _ =
       | _ -> assert_failure "Meld type should be Kan"
 
 let test_draw_discard _ =
-  let p = Player.create "Tester" in
+  let p = Player.create "Tester" Player.Medium in
   let deck = Deck.create () in
   
   match Player.draw_tile p deck with
@@ -188,7 +188,7 @@ let test_get_recommendations _ =
     ["1m";"2m";"3m"; "4m";"5m";"6m"; "7m";"8m";"9m"; "1p";"2p";"3p"; "4p"] in
   let recs_empty = Player.get_recommendations_pure p_13 empty_visible in
   assert_equal 0 (List.length recs_empty) ~msg:"Should return empty list for 13 tiles"let test_game_create _ =
-  let g = Game.create () in
+  let g = Game.create Player.Medium in
   assert_equal 0 (Game.current_player_id g) ~msg:"Game should start with Player 0";
   assert_equal 70 (Game.remaining_tiles g) ~msg:"Remaining tiles should be 70";
   let players = Game.all_players g in
@@ -198,7 +198,7 @@ let test_get_recommendations _ =
   ) players
 
 let test_draw_and_discard _ =
-  let g = Game.create () in
+  let g = Game.create Player.Medium in
   
   let (g_drawn, tile_opt) = Game.draw_card g in
   assert_bool "Draw should return a tile" (tile_opt <> None);
@@ -214,7 +214,7 @@ let test_draw_and_discard _ =
   assert_equal 1 (Game.current_player_id g_discarded) ~msg:"Turn should rotate to Player 1"
 
 let test_bot_step _ =
-  let g = Game.create () in
+  let g = Game.create Player.Medium in
   let g_p1 = Game.next_turn g in
   assert_equal 1 (Game.current_player_id g_p1);
   
@@ -225,14 +225,14 @@ let test_bot_step _ =
   assert_equal 69 (Game.remaining_tiles g_next) ~msg:"Bot should have consumed 1 card"
 
 let test_game_perform_pon_fail _ =
-  let g = Game.create () in
+  let g = Game.create Player.Medium in
   let target = Tile.Honor(Tile.Red) in
   let (g_new, success) = Game.perform_pon g target in
   if not success then
     assert_equal g g_new ~msg:"State should not change on failure"
 
 let test_last_discard_logic _ =
-  let g = Game.create () in
+  let g = Game.create Player.Medium in
   
   assert_equal None (Game.last_discard g) ~msg:"Should have no discards at start";
 
@@ -249,7 +249,7 @@ let test_last_discard_logic _ =
       ~msg:"Last discard should match the tile player 0 discarded"
 
 let test_perform_chi_fail _ =
-  let g = Game.create () in
+  let g = Game.create Player.Medium in
   
   let target = Tile.Numbered(Tile.Man, 5) in
   let t1 = Tile.Honor(Tile.East) in
@@ -261,7 +261,7 @@ let test_perform_chi_fail _ =
   assert_equal (Game.current_player_id g) (Game.current_player_id g_new)
 
 let test_perform_kan_fail _ =
-  let g = Game.create () in
+  let g = Game.create Player.Medium in
   let target = Tile.Honor(Tile.Green) in
   
   let (g_new, success) = Game.perform_kan g target in
@@ -270,11 +270,11 @@ let test_perform_kan_fail _ =
   assert_equal 0 (Game.current_player_id g_new)
 
 let test_winner_initial _ =
-  let g = Game.create () in
+  let g = Game.create Player.Medium in
   assert_equal None (Game.winner g) ~msg:"Should be no winner at start"
 
 let setup_game_with_hand hand_strs =
-  let g = Game.create () in
+  let g = Game.create Player.Medium in
   let p0 = List.nth (Game.all_players g) 0 in
   let p0_custom = Player.debug_set_hand p0 (make_hand hand_strs) in
   Game.debug_set_player g 0 p0_custom

@@ -12,10 +12,9 @@ let parse_tile_str s =
   let all_unique_tiles = numbered @ honored in
 
   List.find_opt (fun t -> Tile.to_string t = s) all_unique_tiles
-
+let game_state_ref = ref (Game.create Player.Medium)
 (* 全局游戏状态 *)
-let game_state_ref = ref (Game.create ())
-
+(* 传入默认难度 Player.Medium *)
 (* [新增] 渲染役种和分数结果 *)
 let render_score_result (res: Hand.Score.result) =
   let yaku_rows = 
@@ -103,12 +102,13 @@ let suggestion_html =
       let visible = Game.get_visible_counts game 0 in
       let indicators = Game.get_dora_indicators game in
       
-      (* 调用增强版 API *)
+      (* [关键修改] 这里调用 get_recommendations_enhanced *)
+      (* 并且解析返回的三元组 (tile, count, score) *)
       let recommendations = Player.get_recommendations_enhanced human_p visible indicators in
       let top3 = List.filteri (fun i _ -> i < 3) recommendations in
       
       let rows = 
-        top3 |> List.map (fun (tile, count, score) -> (* 注意这里解构了 score *)
+        top3 |> List.map (fun (tile, count, score) -> 
           Printf.sprintf 
             "<div style='display:flex; align-items:center; margin-bottom:8px; background:rgba(0,0,0,0.2); padding:5px; border-radius:4px;'>
                <span style='margin-right:10px; color:#a29bfe; font-weight:bold; font-size:0.9em;'>Discard:</span>
@@ -122,17 +122,10 @@ let suggestion_html =
         ) |> String.concat ""
       in
       if rows = "" then "" 
-      else 
-        Printf.sprintf 
-          "<div class='sidebar-panel'>
-             <div class='sidebar-header'>💡 AI Assistant (Enhanced)</div>
-             %s
-           </div>"
-          rows
+      else Printf.sprintf "<div class='sidebar-panel'><div class='sidebar-header'>💡 AI Assistant (Enhanced)</div>%s</div>" rows
     else 
       "<div class='sidebar-panel' style='opacity:0.5'><div class='sidebar-header'>💡 AI Assistant</div><div style='padding:10px; font-size:0.9em; color:#888;'>Waiting for draw...</div></div>"
   in
-
   (* 操作按钮区域 *)
   let action_buttons_html =
     match last_discard_opt with
@@ -257,6 +250,8 @@ let suggestion_html =
         .debug-area { padding: 10px; background-color: #111; border: 1px solid #444; font-family: monospace; font-size: 0.8em; color: #aaa; border-radius: 8px; }
         @keyframes pulse { 0%% { transform: scale(1); } 50%% { transform: scale(1.05); } 100%% { transform: scale(1); } }
         a { color: #74b9ff; text-decoration: none; }
+        .diff-btn { display:block; width:100%%; box-sizing: border-box; margin-bottom:5px; padding:10px; border:1px solid #555; background:#444; color:white; border-radius:5px; cursor:pointer; text-align:center; transition:0.2s; text-decoration:none; }
+        .diff-btn:hover { background:#666; border-color:#888; color:#fff; }
       </style>
     </head>
     <body>
@@ -286,17 +281,20 @@ let suggestion_html =
         </div>
 
         <div class='sidebar'>
-           %s
+           %s 
            
+           <div class='sidebar-panel'>
+             <div class='sidebar-header'>⚙️ New Game</div>
+             <a href='/new_game?diff=easy' class='diff-btn' style='color:#55efc4'>Easy (Random)</a>
+             <a href='/new_game?diff=medium' class='diff-btn' style='color:#74b9ff'>Medium (Pure A*)</a>
+             <a href='/new_game?diff=hard' class='diff-btn' style='color:#ff7675'>Hard (Enhanced)</a>
+           </div>
+
            <div class='sidebar-panel'>
              <div class='sidebar-header'>🔧 Debug Info</div>
              <div style='font-size:0.8em; color:#aaa; overflow-x:hidden;'>
-               %s
+               %s 
              </div>
-           </div>
-           
-           <div style='text-align:center;'>
-             <a href='/new_game'>⟳ Restart</a>
            </div>
         </div>
 
@@ -486,8 +484,20 @@ let () =
         Dream.html "<html><body style='background:#2d3436; color:white; text-align:center; padding-top:50px;'><h1>⚠️ Cannot Win (No Yaku / 没役)</h1><p>Check your hand again.</p><a href='/' style='color:#74b9ff'>Back</a></body></html>"
     );
 
-    Dream.get "/new_game" (fun req -> 
-      game_state_ref := Game.create (); 
+   Dream.get "/new_game" (fun req -> 
+      (* 1. 获取 URL 参数 ?diff=... *)
+      let diff_str = match Dream.query req "diff" with Some s -> s | None -> "medium" in
+      
+      (* 2. 匹配参数转换为 Player.difficulty 类型 *)
+      let diff = match diff_str with
+        | "easy" -> Player.Easy
+        | "hard" -> Player.Hard
+        | _ -> Player.Medium
+      in
+      
+      (* 3. 使用指定难度创建新游戏 *)
+      game_state_ref := Game.create diff;
+      
       Dream.redirect req "/"
     );
   ]

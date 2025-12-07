@@ -14,7 +14,7 @@ type t
 
 (** {1 Initialization and State Access} *)
 
-val create : unit -> t
+val create : Player.difficulty -> t
 (** Create a new game instance.
     - Automatically generates and shuffles the deck;
     - Deals 13 tiles to each player;
@@ -22,6 +22,10 @@ val create : unit -> t
 
 val current_player : t -> Player.t
 (** Get the player whose turn it currently is. *)
+
+val current_player_id : t -> int
+(** Returns the integer index (0–3) of the player whose turn it currently is. *)
+
 
 (** {2 Core Game Flow Functions} *)
 
@@ -110,8 +114,6 @@ val play_bot_step : t -> (t * bool)
 
 (** {7 Utilities} *)
 
-val current_player_id : t -> int
-(** Returns the integer index (0–3) of the player whose turn it currently is. *)
 
 val debug_set_player : t -> int -> Player.t -> t
 (* just for debug to set player state *)

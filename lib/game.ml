@@ -6,17 +6,26 @@ type t = {
   current_player_idx : int;
 }
 
-let create () =
+let create (bot_difficulty : Player.difficulty) =
   let deck = Deck.create () in
-  let players = Array.init 4 (fun i -> Player.create (Printf.sprintf "Player%d" i)) in
   
-  (* 1. 正常发牌 (先给所有人发13张随机牌) *)
+  (* 初始化 4 个玩家 *)
+  (* Index 0: 人类 (默认 Hard/Enhanced 助手) *)
+  (* Index 1-3: 机器人 (使用传入的 bot_difficulty) *)
+  let players = Array.init 4 (fun i -> 
+    let diff = if i = 0 then Player.Hard else bot_difficulty in
+    Player.create (Printf.sprintf "Player%d" i) diff
+  ) in
+  
+  (* 正常发牌逻辑：给每人发13张 *)
   let rec deal_initial d idx =
     if idx = 4 then (d, players)
     else
       let rec draw_13 p d_inner count =
         if count = 0 then (p, d_inner)
-        else match Player.draw_tile p d_inner with None -> (p, d_inner) | Some (np, nd) -> draw_13 np nd (count - 1)
+        else match Player.draw_tile p d_inner with 
+             | None -> (p, d_inner) 
+             | Some (np, nd) -> draw_13 np nd (count - 1)
       in
       let (p_full, d_final) = draw_13 players.(idx) d 13 in
       players.(idx) <- p_full;
@@ -190,33 +199,6 @@ let perform_kan g target =
              players = new_players;
              current_player_idx = 0 
            }, true)
-
-(* 机器人简单逻辑 *)
-let play_bot_step g =
-  let p = current_player g in
-  (* 1. 机器人摸牌 *)
-  match Player.draw_tile p g.deck with
-  | None -> (g, false)
-  | Some (p_drawn, deck_after_draw) ->
-      (* 2. [关键] 判断是否自摸 *)
-      if Player.can_tsumo p_drawn then
-        let nps = Array.copy g.players in
-        nps.(g.current_player_idx) <- p_drawn;
-        (* 自摸了！不切牌，不流转回合，直接返回状态，让 controller (main.ml) 处理胜利 *)
-        ({ g with deck = deck_after_draw; players = nps }, true)
-      else
-        (* 3. 没胡，执行切牌 (这里简单切摸到的牌) *)
-        match Player.last_drawn p_drawn with
-        | None -> (g, false)
-        | Some tile_to_discard ->
-            match Player.discard_tile p_drawn tile_to_discard with
-            | None -> (g, false)
-            | Some p_after_discard ->
-                let nps = Array.copy g.players in
-                nps.(g.current_player_idx) <- p_after_discard;
-                let next_g = next_turn { g with deck = deck_after_draw; players = nps } in
-                (next_g, true)
-
 let debug_set_player g idx p =
   let new_players = Array.copy g.players in
   new_players.(idx) <- p;
@@ -253,3 +235,40 @@ let get_visible_counts g viewer_idx =
 (* 获取宝牌指示牌 *)
 let get_dora_indicators g =
   Deck.get_dora_indicators g.deck
+(* 机器人简单逻辑 *)
+let play_bot_step g =
+  let p = current_player g in
+  
+  (* 1. 机器人摸牌 *)
+  match Player.draw_tile p g.deck with
+  | None -> (g, false)
+  | Some (p_drawn, deck_after_draw) ->
+      
+      (* 2. [优先] 检查是否自摸 (Tsumo) *)
+      if Player.can_tsumo p_drawn then (
+        let nps = Array.copy g.players in
+        nps.(g.current_player_idx) <- p_drawn;
+        (* 保持当前玩家索引不变，返回状态，外层 Main 会检测 winner *)
+        ({ g with deck = deck_after_draw; players = nps }, true)
+      ) else (
+        (* 3. 准备数据调用 AI 决策 *)
+        let visible = get_visible_counts g g.current_player_idx in
+        let doras = get_dora_indicators g in
+        
+        (* 4. 调用 Player 模块的 AI 决策函数 (支持 Easy/Medium/Hard) *)
+        let discard_choice = Player.decide_discard p_drawn visible doras in
+        
+        match discard_choice with
+        | None -> (g, false) (* 异常情况：无牌可切 *)
+        | Some tile_to_discard ->
+            (* 5. 执行切牌 *)
+            match Player.discard_tile p_drawn tile_to_discard with
+            | None -> (g, false)
+            | Some p_after_discard ->
+                let nps = Array.copy g.players in
+                nps.(g.current_player_idx) <- p_after_discard;
+                
+                (* 6. 回合结束，流转到下一家 *)
+                let next_g = next_turn { g with deck = deck_after_draw; players = nps } in
+                (next_g, true)
+      )

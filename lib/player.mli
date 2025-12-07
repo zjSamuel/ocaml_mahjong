@@ -9,8 +9,10 @@ type t
 
 
 (** {1 Initialization and Accessors} *)
+type difficulty = Easy | Medium | Hard
 
-val create : string -> t
+val create : string -> difficulty -> t 
+(* [修改] create 增加难度参数 *)
 (** [create name] initializes a new player with the given [name].
     The player starts with an empty hand and empty discard pile. *)
 
@@ -39,6 +41,8 @@ val tile_count : t -> int
 val has_full_hand : t -> bool
 (** Checks if the player has a full hand (needs to discard).
     Equivalent to [tile_count p >= 14]. *)
+
+val difficulty : t -> difficulty (* [新增] 获取难度 *)
 
 (** {1 Rule Validation (Predicates)} *)
 
@@ -101,6 +105,9 @@ val get_recommendations_pure : t -> int array -> (Tile.t * int) list
     - Returns a list of [(tile_to_discard, ukeire_count)], sorted by efficiency (descending). *)
 
 val get_recommendations_enhanced : t -> int array -> Tile.t list -> (Tile.t * int * float) list
+
+(* [新增] 机器人自动决策函数: 根据自身的难度决定切哪张牌 *)
+val decide_discard : t -> int array -> Tile.t list -> Tile.t option
 
 val to_string : t -> string
 (** Returns a string representation of the player (name, hand, melds) for debugging purposes. *)

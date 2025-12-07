@@ -1,20 +1,23 @@
+type difficulty = Easy | Medium | Hard
+
 type t = {
   name : string;
   hand : Hand.t;
   discards : Tile.t list;
   last_drawn : Tile.t option;
   melds : Hand.meld list; (* 使用 Hand.meld *)
+  difficulty : difficulty; (* [新增] 字段 *)
 }
 
-let create name =
-  { name; hand = Hand.empty; discards = []; last_drawn = None; melds = [] }
+let create name diff = 
+  { name; hand = Hand.empty; discards = []; last_drawn = None; melds = []; difficulty = diff }
 
 let name p = p.name
 let hand p = p.hand
 let discards p = p.discards
 let last_drawn p = p.last_drawn
 let melds p = p.melds
-
+let difficulty p = p.difficulty (* Getter *)
 let sort_tiles = List.sort Tile.compare
 
 let is_sequence (t1: Tile.t) (t2: Tile.t) (t3: Tile.t) : bool =
@@ -133,7 +136,7 @@ let tile_count p =
 let has_full_hand p = tile_count p >= 14
 
 (* ========================================================== *)
-(* AI Heuristics: 静态评估函数 (用于增强版 AI)               *)
+(* AI Heuristics & Decision                                   *)
 (* ========================================================== *)
 
 (* 判断是否为幺九牌 *)
@@ -251,3 +254,25 @@ let get_recommendations_enhanced p visible_counts dora_indicators =
     ) weighted_candidates 
   else 
     []
+let decide_discard p visible_counts dora_indicators =
+  if not (has_full_hand p) then None
+  else
+    match p.difficulty with
+    | Easy -> 
+        (* 简单: 随机切一张 *)
+        let len = List.length p.hand in
+        if len = 0 then None else Some (List.nth p.hand (Random.int len))
+        
+    | Medium ->
+        (* 中等: Pure A* (只看进张) *)
+        let recs = get_recommendations_pure p visible_counts in
+        (match recs with
+         | (t, _) :: _ -> Some t
+         | [] -> Some (List.hd p.hand)) (* Fallback *)
+         
+    | Hard ->
+        (* 困难: Enhanced A* (进张 + 打点) *)
+        let recs = get_recommendations_enhanced p visible_counts dora_indicators in
+        (match recs with
+         | (t, _, _) :: _ -> Some t
+         | [] -> Some (List.hd p.hand)) (* Fallback *)
