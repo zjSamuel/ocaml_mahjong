@@ -11,13 +11,13 @@ val draw : t -> (Tile.t * t) option
 val remaining : t -> int
 (** Get the number of remaining tiles in the current wall. *)
 
-(** Get list of currently visible dora indicators *)
 val get_dora_indicators : t -> Tile.t list
+(** Get list of currently visible dora indicators *)
 
-(** Reveal a new dora indicator (called after Kan) *)
 val add_dora_indicator : t -> t
+(** Reveal a new dora indicator (called after Kan) *)
 
-(** Draw a Rinshan tile (from the dead wall) *)
 val draw_rinshan : t -> (Tile.t * t) option
+(** Draw a Rinshan tile (from the dead wall) *)
 
 val debug_force_next : t -> Tile.t -> t

@@ -8,14 +8,27 @@ type t = {
 }
 
 let create_full_list () =
-  let suits = [Tile.Man; Tile.Pin; Tile.Sou] in
-  let numbers = [1; 2; 3; 4; 5; 6; 7; 8; 9] in
-  let honors = [Tile.East; Tile.South; Tile.West; Tile.North; Tile.Red; Tile.Green; Tile.White] in
-  let numbered = 
-    List.concat_map (fun s -> List.map (fun n -> Tile.Numbered (s, n)) numbers) suits in
+  let suits = [ Tile.Man; Tile.Pin; Tile.Sou ] in
+  let numbers = [ 1; 2; 3; 4; 5; 6; 7; 8; 9 ] in
+  let honors =
+    [
+      Tile.East;
+      Tile.South;
+      Tile.West;
+      Tile.North;
+      Tile.Red;
+      Tile.Green;
+      Tile.White;
+    ]
+  in
+  let numbered =
+    List.concat_map
+      (fun s -> List.map (fun n -> Tile.Numbered (s, n)) numbers)
+      suits
+  in
   let honored = List.map (fun h -> Tile.Honor h) honors in
   let unique = numbered @ honored in
-  List.concat_map (fun t -> [t; t; t; t]) unique
+  List.concat_map (fun t -> [ t; t; t; t ]) unique
 
 let shuffle_list lst =
   let tagged = List.map (fun x -> (Random.bits (), x)) lst in
@@ -26,12 +39,13 @@ let create () =
   let all = shuffle_list (create_full_list ()) in
   let rec split n acc l =
     if n = 0 then (List.rev acc, l)
-    else match l with
+    else
+      match l with
       | [] -> (List.rev acc, [])
       | h :: t -> split (n - 1) (h :: acc) t
   in
   (* 留 14 张作为王牌 (Dead Wall) *)
-  let (dead, draw) = split 14 [] all in
+  let dead, draw = split 14 [] all in
   { draw_pile = draw; dead_wall = dead; dora_indicators_count = 1 }
 
 let draw deck =
@@ -45,7 +59,7 @@ let remaining deck = List.length deck.draw_pile
 let get_dora_indicators deck =
   let rec loop n acc =
     if n = 0 then List.rev acc
-    else 
+    else
       (* 王牌区的第 0, 2, 4, 6, 8 张是表宝牌指示牌 *)
       let idx = (n - 1) * 2 in
       if idx < List.length deck.dead_wall then
