@@ -108,7 +108,334 @@ These are key concepts for our AI and analysis tools.
 
 Our AI uses **ukeire** to rank discards: it recommends discarding the tile that leaves you with the highest ukeire count.
 
+## Implemented Yaku (Implemented Yaku)
 
+This section lists all Riichi Mahjong yaku (役) currently implemented in the **`ocaml_mahjong`** project.  
+All scoring logic lives in the `Score` module and the `check_*` family of functions in `lib/hand.ml`.
+
+### Tile Notation in Examples
+
+In the examples below, we use a compact tile notation:
+
+- `m`: **Manzu** (万子 / characters)
+- `p`: **Pinzu** (筒子 / circles)
+- `s`: **Souzu** (索子 / bamboo)
+- `z`: **Honors** 
+  - `1–4z`: East, South, West, North (东南西北)  
+  - `5–7z`: Haku, Hatsu, Chun (白发中)
+
+---
+
+### 1. Situational & Luck Yaku
+
+These yaku mainly depend on how the hand is won (tsumo/ron, riichi, etc.) or special game states.
+
+#### Riichi (立直)
+
+- **Han**: 1
+- **Type**: Situational  
+- **Condition / Logic**  
+  - Hand is closed: `is_menzen = true`.
+  - Player has declared riichi and is in tenpai (one tile from winning).
+
+---
+
+#### Menzen Tsumo (门前清自摸和)
+
+- **Han**: 1
+- **Type**: Situational  
+- **Condition / Logic**  
+  - Hand is closed and the win is by self-draw:
+    - `is_menzen = true && is_tsumo = true`.
+
+---
+
+#### Ippatsu (一发)
+
+- **Han**: 1
+- **Type**: Luck  
+- **Condition / Logic**  
+  - After declaring riichi, the player wins within one round (within the next uninterrupted turn cycle).
+  - No calls (chi/pon/kan) are made that would cancel ippatsu.
+
+---
+
+#### Rinshan Kaihou (岭上开花)
+
+- **Han**: 1
+- **Type**: Luck  
+- **Condition / Logic**  
+  - The player declares a kan and then wins by drawing a rinshan (dead wall) tile:
+    - `is_rinshan = true`.
+
+---
+
+#### Dora (ドラ / 宝牌)
+
+> **Note**: Dora is **not** a yaku; it only adds bonus han.
+
+- **Han**: +1 per dora tile in the hand
+- **Condition / Logic**  
+  - For each tile in the hand that is the **next tile** after a dora indicator, add +1 han.
+  - Implemented via the `count_dora` function.
+
+---
+
+### 2. Number/Honor-Restricted Yaku
+
+These yaku are determined by **which ranks and tiles** appear in the hand.
+
+#### Tanyao (断幺九 / All Simples)
+
+- **Han**: 1 (open or closed)
+- **Function**: `check_tanyao`
+- **Condition / Logic**  
+  - The hand contains **no 1s, no 9s, and no honor tiles** (`z`).
+  - All tiles are 2–8 in the suited tiles.
+
+- **Example**  
+  - `234m 55p 678p 234s 666s`
+
+---
+
+#### Yakuhai (役牌 / Value Tiles)
+
+- **Han**: 1 han per qualifying set (open or closed)
+- **Function**: `check_yakuhai`
+- **Condition / Logic**  
+  - The hand has at least one triplet (or kan) of **value tiles**:
+    - **Dragon tiles**: Haku (5z), Hatsu (6z), Chun (7z).
+    - **Round wind**: e.g. East (1z) if it is East round.
+    - **Seat wind**: e.g. South (2z) if the player is South seat.
+
+- **Example (Haku triplet)**  
+  - `555z 123m 789p 234s 88m`
+
+---
+
+#### Honroutou (混老头 / All Terminals & Honors)
+
+- **Han**: 2 (open or closed)
+- **Function**: `check_honroutou`
+- **Condition / Logic**  
+  - Every meld and the pair consist **only** of:
+    - Terminals (1 or 9 of suits), or
+    - Honor tiles (`z`).
+  - Typically appears together with **Toitoi** or **Chiitoitsu**.
+
+- **Example**  
+  - `111m 999m 111p 99p 111z (East)`
+
+---
+
+#### Chanta (混全带幺九 / Outside Hand)
+
+- **Han**: 2 (closed), 1 (open)
+- **Function**: `check_chanta`
+- **Condition / Logic**  
+  - All melds and the pair contain at least one **terminal (1 or 9)** or **honor tile**.
+  - Sequences such as `123` and `789` are allowed.
+  - Honors are allowed.
+
+- **Example**  
+  - `123m 789m 123p 11z 999s`
+
+---
+
+#### Junchan (纯全带幺九 / Pure Outside Hand)
+
+- **Han**: 3 (closed), 2 (open)
+- **Function**: `check_junchan`
+- **Condition / Logic**  
+  - All melds and the pair contain **terminals (1 or 9) only**, **no honors**.
+  - Every set must include a 1 or a 9.
+
+- **Example**  
+  - `123m 789m 111p 999s 11s`
+
+---
+
+### 3. Sequence & Triplet Pattern Yaku
+
+These yaku rely on specific combinations of sequences (shuntsu) and triplets/quads (koutsu/kantsu).
+
+#### Pinfu (平和)
+
+- **Han**: 1 (closed only)
+- **Function**: `check_pinfu`
+- **Condition / Logic**  
+  - The hand is closed (`is_menzen`).
+  - All four melds are **sequences** (no triplets/quads).
+  - The pair is **not a value tile** (i.e., not a dragon, round wind, or seat wind).
+  - The winning wait is a **two-sided (ryanmen) wait**.  
+    (The code uses a simplified check for this.)
+
+- **Example**  
+  - `123m 456m 789p 234s 99s`  
+    where `9s` is not a value tile.
+
+---
+
+#### Iipeiko (一杯口 / One Set of Identical Sequences)
+
+- **Han**: 1 (closed only)
+- **Function**: `check_iipeiko`
+- **Condition / Logic**  
+  - The hand has **one pair** of identical sequences in the same suit.  
+    Example pattern: `234m + 234m`.
+
+- **Example**  
+  - `223344m 567p 11z`  
+    (interpreted as `234m + 234m`, plus `567p`, plus `11z` as the pair)
+
+---
+
+#### Ryanpeiko (两杯口 / Two Sets of Identical Sequences)
+
+- **Han**: 3 (closed only)
+- **Function**: `check_ryanpeiko`
+- **Condition / Logic**  
+  - The hand has **two distinct iipeiko patterns** (two pairs of identical sequences).
+
+- **Example**  
+  - `223344m 667788p 55z`  
+    → `234m + 234m` and `678p + 678p`, with `55z` as the pair.
+
+---
+
+#### Toitoi (対々和 / Toitoi, All Triplets)
+
+- **Han**: 2 (open or closed)
+- **Function**: `check_toitoi`
+- **Condition / Logic**  
+  - All four melds are **triplets or quads**; there are **no sequences**.
+
+- **Example**  
+  - `111m 555p 888s 222z 99m`
+
+---
+
+#### Sanankou (三暗刻 / Three Concealed Triplets)
+
+- **Han**: 2 (open or closed hand; triplets themselves must be concealed)
+- **Function**: `check_sanankou`
+- **Condition / Logic**  
+  - The hand contains **three concealed triplets** (drawn by the player, not called).
+  - These triplets must not have been opened by chi/pon/kan.
+
+- **Example**  
+  - `111m (concealed) 555p (concealed) 999s (concealed) 234p 88z`
+
+---
+
+#### Sankantsu (三杠子 / Three Quads)
+
+- **Han**: 2 (open or closed)
+- **Function**: `check_sankantsu`
+- **Condition / Logic**  
+  - The player has declared **three kans** (quads).
+
+- **Example**  
+  - `1111m (kan) 5555p (kan) 2222z (kan) 123s 99p`
+
+---
+
+#### Shousangen (小三元 / Small Three Dragons)
+
+- **Han**: 2 yaku han + 2 han from yakuhai (effectively 4 han total)
+- **Function**: `check_shousangen`
+- **Condition / Logic**  
+  - The hand contains **two dragon triplets** and the **pair is the third dragon tile**.
+
+- **Example**  
+  - `555z (Haku) 666z (Hatsu) 77z (Chun - pair) 123m 789p`
+
+---
+
+#### Sanshoku Doukou (三色同刻 / Three Color Triplets)
+
+- **Han**: 2 (open or closed)
+- **Function**: `check_sanshoku_doukou`
+- **Condition / Logic**  
+  - There are three triplets (or quads) of the **same number** in **all three suits** (manzu, pinzu, souzu).
+
+- **Example**  
+  - `222m 222p 222s 456m 99z`
+
+---
+
+#### Sanshoku Doujun (三色同顺 / Mixed Triple Sequence)
+
+- **Han**: 2 (closed), 1 (open)
+- **Function**: `check_sanshoku`
+- **Condition / Logic**  
+  - There are three sequences of the **same numbers** but in **each of the three suits**.
+
+- **Example**  
+  - `234m 234p 234s 789s 11z`
+
+---
+
+#### Itsu (一気通贯 / Ikkitsuukan, Pure Straight)
+
+- **Han**: 2 (closed), 1 (open)
+- **Function**: `check_itsu`
+- **Condition / Logic**  
+  - In a single suit, the hand contains **123, 456, and 789** sequences.
+
+- **Example**  
+  - `123m 456m 789m 11z 555s`
+
+---
+
+### 4. Flush-Type Yaku
+
+These yaku depend on how many suits are present in the hand.
+
+#### Honitsu (混一色 / Half-Flush)
+
+- **Han**: 3 (closed), 2 (open)
+- **Function**: `check_suits` → `Score.Honitsu`
+- **Condition / Logic**  
+  - The hand consists of **exactly one suit of number tiles** plus **honors**.
+  - No tiles from other suits are allowed.
+
+- **Example**  
+  - `123m 567m 999m 11z 555z`
+
+---
+
+#### Chinitsu (清一色 / Full Flush)
+
+- **Han**: 6 (closed), 5 (open)
+- **Function**: `check_suits` → `Score.Chinitsu`
+- **Condition / Logic**  
+  - The hand consists of **only one suit of number tiles**.
+  - **No honor tiles** are present.
+
+- **Example**  
+  - `111m 234m 567m 789m 99m`
+
+---
+
+### 5. Special Hand Structures
+
+Hands that do **not** follow the usual “4 melds + 1 pair” structure.
+
+#### Chiitoitsu (七对子 / Seven Pairs)
+
+- **Han**: 2 (closed only)
+- **Function**: `check_chiitoitsu_hand`
+- **Condition / Logic**  
+  - The hand is composed of **7 distinct pairs**.
+  - No melds; only pairs.
+  - A dedicated shanten calculator is used:
+    - `calculate_chiitoitsu_shanten`.
+
+- **Example**  
+  - `11m 55m 99m 22p 88p 55s 11z`
+
+---
 
 ## How to play
 
