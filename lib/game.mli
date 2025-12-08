@@ -1,117 +1,89 @@
-(** game.mli — Game Flow Control Module Responsible for maintaining and
-    operating the overall game state, including dealing, drawing, discarding,
-    and turn rotation logic. *)
+(** lib/game.mli *)
 
+(** Abstract type representing the game state. *)
 type t
-(** Abstract type representing the game state. The implementation includes:
-    - [deck]: the current wall (Deck.t)
-    - [players]: the four players (Player.t array)
-    - [discard_pile]: the discard pile
-    - [current_player_idx]: the index of the current player (0–3) *)
 
-(** {1 Initialization and State Access} *)
+(** {1 Initialization} *)
 
+(** [create ()]
+    Initializes a new game.
+    - Creates and shuffles the deck.
+    - Deals 13 tiles to each of the 4 players.
+    - Sets Player 0 (usually Human) as the starting player. *)
 val create : unit -> t
-(** Create a new game instance.
-    - Automatically generates and shuffles the deck;
-    - Deals 13 tiles to each player;
-    - Sets the current player to player 0 by default. *)
 
+(** {1 State Accessors} *)
+
+(** Returns the player whose turn it currently is. *)
 val current_player : t -> Player.t
-(** Get the player whose turn it currently is. *)
 
-(** {2 Core Game Flow Functions} *)
+(** Returns the index (0-3) of the current player. *)
+val current_player_id : t -> int
 
-val draw_card : t -> t * Tile.t option
-(** The current player draws a tile from the wall. Returns:
-    - The updated game state;
-    - [Some tile] if a tile was successfully drawn;
-    - [None] if the wall is empty. *)
-
-val discard_card : t -> Tile.t -> t * Tile.t option
-(** The current player discards a specified tile, updating the discard pile and
-    rotating to the next player. Returns:
-    - The updated game state;
-    - [Some tile] if the discard was successful;
-    - [None] if the tile was not in the player's hand. *)
-
-val next_turn : t -> t
-(** Switch the current player to the next one (0 → 1 → 2 → 3 → 0). *)
-
-(** {3 Game State Checks} *)
-
-val is_over : t -> bool
-(** Determine whether the game has ended (e.g., the wall is empty or a player
-    has won). *)
-
-val winner : t -> Player.t option
-(** Return the winning player, if any. Currently a placeholder interface—future
-    implementations may include win detection logic. *)
-
+(** Returns the number of tiles remaining in the live wall. *)
 val remaining_tiles : t -> int
-(** Returns the number of tiles remaining in the live wall (draw pile). *)
 
+(** Returns all players (useful for UI rendering). *)
 val all_players : t -> Player.t list
-(** Returns a list of all player objects (indices 0 to 3). Useful for iterating
-    over players to render the UI or debug info. *)
 
+(** Returns the most recently discarded tile (for Chi/Pon/Ron checks). *)
 val last_discard : t -> Tile.t option
-(** Returns the most recently discarded tile, if any. This is used to determine
-    if the main player can claim the tile (Chi/Pon/Kan/Ron). *)
 
-(** {4 Interaction and Interruptions (Ming-pai)} *)
+(** Returns the list of visible dora indicator tiles. *)
+val get_dora_indicators : t -> Tile.t list
+
+(** [get_visible_counts game viewer_idx]
+    Returns an array (size 34) counting all visible tiles from the perspective
+    of [viewer_idx]. This includes:
+    - All discards on the table.
+    - All open melds (Chi/Pon/Kan) of all players.
+    - The viewer's own hand.
+    Used by AI to calculate tile probability (Ukeire). *)
+val get_visible_counts : t -> int -> int array
+
+(** {1 Core Game Loop Actions} *)
+
+(** [draw_card game]
+    Current player draws a tile.
+    Returns (new_game_state, drawn_card_option). *)
+val draw_card : t -> t * Tile.t option
+
+(** [discard_card game tile]
+    Current player discards a tile.
+    Returns (new_game_state, discarded_tile_option). *)
+val discard_card : t -> Tile.t -> t * Tile.t option
+
+(** [next_turn game]
+    Advances the turn to the next player (0->1->2->3->0). *)
+val next_turn : t -> t
+
+(** {1 Interactions (Melds)} *)
 
 val perform_chi : t -> Tile.t -> Tile.t -> Tile.t -> t * bool
-(** Attempts to perform a "Chi" (Chow) action for the human player (Player 0).
-    Arguments:
-    - [target]: The discarded tile being claimed.
-    - [t1], [t2]: The two tiles from the player's hand that form the sequence
-      with [target]. Returns:
-    - [(new_game_state, true)] if the action is valid and successful.
-    - [(original_state, false)] if the action is invalid. *)
-
 val perform_pon : t -> Tile.t -> t * bool
-(** Attempts to perform a "Pon" (Pung) action for the human player (Player 0).
-    Arguments:
-    - [target]: The discarded tile being claimed. Returns
-      [(new_game_state, true)] if the player has a matching pair and the action
-      succeeds. *)
-
 val perform_kan : t -> Tile.t -> t * bool
-(** Attempts to perform a "Kan" (Kong, specifically Daiminkan) for the human
-    player (Player 0). Arguments:
-    - [target]: The discarded tile being claimed. Returns
-      [(new_game_state, true)] if successful. Side effects: Removes 3 matching
-      tiles from hand, creates a Meld, and automatically draws a Rinshan
-      replacement tile. *)
 
-(** {5 Phase Checks} *)
+(** {1 State Checks} *)
+
+val is_over : t -> bool
+val winner : t -> Player.t option
 
 val can_current_player_discard : t -> bool
-(** Checks if the current player is in the "discard phase". Returns [true] if
-    the player has a full hand (effective count >= 14) and must discard. *)
-
 val can_current_player_draw : t -> bool
-(** Checks if the current player is in the "draw phase". Returns [true] if the
-    player has fewer than 14 tiles and is allowed to draw. *)
 
-(** {6 Bot Automation} *)
+(** {1 Bot Automation} *)
 
+(** [play_bot_step game]
+    Executes a single step for the current bot player (Draw -> AI Think -> Discard).
+    Returns (new_game_state, did_something_bool). *)
 val play_bot_step : t -> t * bool
-(** Executes a single action step (Draw -> Discard) for the current bot player.
-    Returns:
-    - [(new_state, true)] if the bot successfully played a turn.
-    - [(state, false)] if it is currently the human's turn or the deck is empty.
-*)
 
-(** {7 Utilities} *)
-
-val current_player_id : t -> int
-(** Returns the integer index (0–3) of the player whose turn it currently is. *)
-
-val debug_set_player : t -> int -> Player.t -> t
-(* just for debug to set player state *)
-
-val get_visible_counts : t -> int -> int array
-val get_dora_indicators : t -> Tile.t list
+(** [set_bot_difficulty game player_idx difficulty]
+    Sets the AI level for a specific player. *)
 val set_bot_difficulty : t -> int -> Player.difficulty -> t
+
+(** {1 Debugging} *)
+
+(** [debug_set_player game idx player]
+    Replaces a player state directly. *)
+val debug_set_player : t -> int -> Player.t -> t

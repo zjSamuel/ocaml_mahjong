@@ -1,9 +1,36 @@
-type suit = Man | Pin | Sou
-type honor = East | South | West | North | Red | Green | White
-type t = Numbered of suit * int | Honor of honor
+(* lib/tile.ml *)
 
-let suit_to_int = function Man -> 0 | Pin -> 1 | Sou -> 2
+open Core
+[@@@coverage off]
+type suit =
+  | Man (** Characters *)
+  | Pin (** Dots *)
+  | Sou (** Bamboo *)
+[@@deriving compare, equal, sexp]
 
+type honor =
+  | East
+  | South
+  | West
+  | North
+  | Red
+  | Green
+  | White
+[@@deriving compare, equal, sexp]
+
+type t =
+  | Numbered of suit * int
+  | Honor of honor
+[@@deriving compare, equal, sexp]
+
+[@@@coverage on]
+(** Helper: Convert suit to integer for strict ordering (Man=0, Pin=1, Sou=2) *)
+let suit_to_int = function
+  | Man -> 0
+  | Pin -> 1
+  | Sou -> 2
+
+(** Helper: Convert honor to integer for strict ordering *)
 let honor_to_int = function
   | East -> 0
   | South -> 1
@@ -13,19 +40,27 @@ let honor_to_int = function
   | Green -> 5
   | White -> 6
 
+(** Custom comparison function to ensure standard Mahjong sorting order:
+    Man < Pin < Sou < Honors *)
 let compare t1 t2 =
   match (t1, t2) with
   | Numbered (s1, n1), Numbered (s2, n2) ->
-      let sc = compare (suit_to_int s1) (suit_to_int s2) in
-      if sc <> 0 then sc else compare n1 n2
-  | Honor h1, Honor h2 -> compare (honor_to_int h1) (honor_to_int h2)
+      (* First compare suits *)
+      let sc = Int.compare (suit_to_int s1) (suit_to_int s2) in
+      if sc <> 0 then sc
+      else
+        (* If suits are same, compare numbers *)
+        Int.compare n1 n2
+  | Honor h1, Honor h2 ->
+      Int.compare (honor_to_int h1) (honor_to_int h2)
+  (* Numbered tiles always come before Honor tiles *)
   | Numbered _, Honor _ -> -1
   | Honor _, Numbered _ -> 1
 
 let to_string = function
   | Numbered (suit, n) ->
       let s = match suit with Man -> "万" | Pin -> "筒" | Sou -> "索" in
-      string_of_int n ^ s
+      Printf.sprintf "%d%s" n s
   | Honor h -> (
       match h with
       | East -> "东"
@@ -36,8 +71,7 @@ let to_string = function
       | Green -> "发"
       | White -> "白")
 
-let next_dora t =
-  match t with
+let next_dora = function
   | Numbered (suit, n) ->
       if n = 9 then Numbered (suit, 1) else Numbered (suit, n + 1)
   | Honor h ->

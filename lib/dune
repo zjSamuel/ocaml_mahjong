@@ -1,5 +1,6 @@
 (library
  (name mahjong)
+ (libraries core)
  (flags (:standard -w -27-32))  ; 新增这一行：忽略警告 27 和 32
  (inline_tests)
  (preprocess (pps ppx_jane bisect_ppx))

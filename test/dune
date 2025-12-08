@@ -1,6 +1,6 @@
 (tests ; 使用 (tests ...) 包装所有的测试可执行文件
- (names test_mahjong test_astar) ; 列出所有测试可执行文件的名字
- (libraries ounit2 mahjong bisect_ppx.runtime) ; 所有测试通用的依赖库
+ (names test_mahjong test_astar test_hand_coverage test_gap_coverage) ; 列出所有测试可执行文件的名字
+ (libraries ounit2 mahjong core) ; 所有测试通用的依赖库
+ (preprocess (pps ppx_jane))
  ; 启用 bisect-ppx
- (instrumentation
-  (backend bisect_ppx)))
+ )
