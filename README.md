@@ -315,30 +315,85 @@ This section documents the current status of a standalone frontend prototype (HT
 
 ## Tests
 
-* We already implement tests on our library, covering nearly all the basic functions in our project and achieving overall coverage of more than 90%.
+* We implement an extensive OUnit2 test suite over the `Mahjong` library (tile, deck, hand, player, and game modules), and achieve more than 90% line coverage.
 
 #### 1. Core Algorithms & Hand Analysis
 
-* **Win Verification:** Validates `is_complete` and standard winning states (Shanten = -1).
-* **Efficiency Calculation:** Tests the engine's ability to recommend optimal discards (e.g., prioritizing isolated honor tiles to maximize winning probability).
-* **Shanten Logic:** Ensures accurate calculation of the distance to Tenpai/Win.
+* **Shanten Engine (A\* + Seven Pairs):**  
+  Tests `Hand.calculate_shanten` on complete hands (shanten = -1), tenpai hands (shanten = 0), and very bad shapes (e.g., kokushi-like hands with many unique tiles), ensuring the standard 4-melds-1-pair shanten and the Chiitoitsu (seven pairs) shanten are both handled correctly.
 
-#### 2. Player Mechanics & State
+* **A\*-based Efficiency & Ukeire:**  
+  Uses `Hand.get_recommendations_astar` and `Hand.calculate_efficiency` on:
+  - near–seven-pairs shapes (should discard isolated tiles),
+  - strong flush / chinitsu shapes (discard off-suit honors and get large, 9-sided waits),
+  - standard mixed hands, and
+  - “garbage” hands with no clear structure,  
+  to verify that the A\* engine always returns a non-empty recommendation list and prefers discards that maximize effective tiles (ukeire).
 
-* **Basic Actions:** Verifies the **Draw** (13→14 tiles) and **Discard** (14→13 tiles) cycle.
-* **Meld Execution:** Tests the logic for **Chi**, **Pon**, and **Kan**, including precise updates of hand composition and exposed meld lists.
-* **Win Declarations:** Checks conditions for both **Ron** (winning off a discard) and **Tsumo** (winning on self-draw) based on specific tile waits.
-* **AI Suggestions:** Ensures valid move recommendations are generated only when the player holds the correct number of tiles (14).
+* **Yaku Detection & Scoring:**  
+  The `Score` module and `Hand.calculate_score` are validated with explicit test hands for major yaku, including:
+  - Pinfu, Iipeiko, Ryanpeiko  
+  - Toitoi, Sanankou, Chiitoitsu  
+  - Sanshoku (mixed triple sequence) and Sanshoku Doukou (three color triplets)  
+  - Itsu (pure straight)  
+  - Chanta, Junchan, Honroutou, Shousangen  
+  - Tanyao, Yakuhai, Honitsu, Chinitsu  
+  as well as Dora counting based on dora indicators. For each case, the expected yaku must appear in the `yaku_list`.
 
-#### 3. Game Engine & Flow Control
+* **Utility & Corner Cases:**  
+  Tests cover `Hand.to_string`, `Hand.remove_first`, tile-to-id mapping (via `Hand.tile_to_id` + `Game.get_visible_counts`), and high-shanten “impossible” shapes to ensure the shanten and efficiency logic behaves robustly even on extreme inputs.
 
-* **Initialization:** Verifies correct setup of 4 players, deck size (70 live tiles remaining after dealing and reserving the dead wall), and starting turn (Player 0).
-* **Turn Rotation:** Tests standard turn passing logic (Player 0 → 1 → 2 → 3).
-* **Complex Interactions:**
-  * **Turn Jumping:** Verifies that **Pon** and **Kan** properly interrupt the standard turn order (e.g., if Player 0 Pons Player 2's discard, the turn jumps back to Player 0).
-  * **Rinshan (Replacement Tile):** Ensures a replacement tile is drawn immediately after a Kan.
-  * **Chi Constraints:** Ensures the turn remains with the caller after a Chi to allow for a discard.
-* **Bot Integration:** Validates that automated players can successfully execute a full turn cycle (Draw + Discard) without errors.
-* **Error Handling:** Tests the prevention of invalid moves (e.g., attempting to Chi non-sequential tiles or Pon without a pair).
+#### 2. Player Mechanics, AI Behaviour & State
+
+* **Basic Actions & Predicates:**  
+  Validates `Player.can_pon`, `Player.can_kan`, and `Player.can_ron` on both valid and invalid setups, as well as core actions:
+  - `perform_chi`, `perform_pon`, `perform_kan`
+  - `discard_tile` with success and failure paths  
+  ensuring illegal operations (e.g., pon without a pair) safely return `None` instead of crashing.
+
+* **Meld Representation & Debug Output:**  
+  Checks that `Player.to_string` correctly prints the player name, tiles, and melds, and that performing a Pon actually inserts a `[Pon …]` segment into the string representation.
+
+* **AI Difficulty Modes (Easy / Medium / Hard):**  
+  For a fixed 14-tile hand, the tests ensure:
+  - **Easy** (random) always returns some discard,
+  - **Medium** (pure A\* efficiency) always finds a discard via ukeire-based ranking,
+  - **Hard** (enhanced A\* with yaku-aware heuristics) also returns a discard and exercises the branch that combines ukeire with potential for dora, Tanyao, Yakuhai, and Honitsu / Chinitsu shapes.  
+  Additional tests drive the fallback branches so that Medium / Hard behaviour remains well-defined even for already winning (shanten = -1) hands.
+
+* **Bot Integration with Game State:**  
+  Confirms that `Game.set_bot_difficulty` correctly updates bot difficulty, and that AI decisions can be invoked inside the game loop without runtime errors.
+
+#### 3. Game Engine, Deck, and Flow Control
+
+* **Initialization & Invariants:**  
+  `Game.create` is tested to ensure:
+  - 4 players are created,
+  - the deck is initialized with a fixed dead wall and at least ~50 live tiles remaining after dealing, and
+  - the current player starts at index 0.  
+  On the deck side, `Deck.create`, `Deck.remaining`, `Deck.get_dora_indicators`, and `Deck.add_dora_indicator` are tested to confirm the separation of the dead wall and correct dora indicator management.
+
+* **Draw–Discard Cycle & Turn Rotation:**  
+  Tests exercise the standard 13→14→13 tile cycle using `Game.draw_card` and `Game.discard_card`, verify that discarding advances the turn (0 → 1 → 2 → 3), and check that `Game.last_discard` always matches the most recent discard.
+
+* **Visible-Tile Accounting for AI:**  
+  Synthetic scenarios modify another player’s hand, discards, and melds (e.g., P1 discards 1m and Pon 2m) and then call `Game.get_visible_counts` from P0’s perspective. The test asserts that the counts for 1m and 2m are exactly as expected (1 and 3), guaranteeing that the A\*-based efficiency engine receives correct visible-tile data.
+
+* **Calls (Chi / Pon / Kan) and Turn Rules:**  
+  Integration tests ensure:
+  - **Pon** and **Kan** correctly interrupt normal rotation and jump the turn back to the caller,
+  - **Chi** keeps the turn with the caller so they can discard afterwards, and
+  - hands and meld lists are updated consistently after each call.
+
+* **Round Termination & Winner Detection:**  
+  A helper drains the deck via repeated draw–discard operations and checks that `Game.is_over` becomes `true` when no tiles remain. Another test injects a known complete hand into Player 0 and verifies that `Game.winner` returns the correct player.
+
+* **Bot Turn Execution & Edge Cases:**  
+  `Game.play_bot_step` is tested in two critical scenarios:
+  - when the deck is empty, it should fail gracefully and return `(game, false)` without crashing;
+  - when a bot is in tenpai and “draws” a winning tile, the function should execute a tsumo win branch successfully and leave the game in a consistent state (including correct next-player index).
+
+* **Rinshan and Dora Behaviour:**  
+  Deck tests verify that `Deck.draw_rinshan` consumes tiles from the live pile and that adding a dora indicator after a Kan actually increases the indicator list size, keeping the dora-related state coherent with scoring tests.
 
 ![alt text](images/QQ20251211-211317.png)
