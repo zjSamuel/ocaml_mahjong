@@ -230,4 +230,4 @@ This section documents the current status of a standalone frontend prototype (HT
     * **Chi Constraints:** Ensures the turn remains with the caller after a Chi to allow for a discard.
 * **Bot Integration:** Validates that automated players can successfully execute a full turn cycle (Draw + Discard) without errors.
 * **Error Handling:** Tests the prevention of invalid moves (e.g., attempting to Chi non-sequential tiles or Pon without a pair).
-![alt text](images/78b5b6a43dcf3bf2ca8b15b0aaaf19ff.png)
+![alt text](images/QQ20251211-211317.png)
