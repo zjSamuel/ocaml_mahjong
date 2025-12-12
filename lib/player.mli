@@ -80,6 +80,7 @@ val get_recommendations_pure : t -> int array -> (Tile.t * int) list
 val get_recommendations_enhanced : t -> int array -> Tile.t list -> (Tile.t * int * float) list
 
 val to_string : t -> string
+val full_tiles : t -> Tile.t list
 
 (** [Debug Only] Sets the player's hand to a specific configuration. *)
 val debug_set_hand : t -> Tile.t list -> t

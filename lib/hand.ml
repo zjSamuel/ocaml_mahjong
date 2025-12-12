@@ -143,32 +143,40 @@ module DecompositionSearch = struct
           :: !moves;
         (* 2. Meld (Pon) *)
         if state.melds + state.tatsu < 4 then (
-          
           (* 2. Meld (Pon) *)
           if c >= 3 then (
             let next_c = Array.copy state.counts in
             next_c.(state.idx) <- c - 3;
-            moves := ({ state with 
-                        counts = next_c; 
-                        remaining = state.remaining - 3;
-                        melds = state.melds + 1 
-                      }, -2.0) :: !moves
-          );
+            moves :=
+              ( {
+                  state with
+                  counts = next_c;
+                  remaining = state.remaining - 3;
+                  melds = state.melds + 1;
+                },
+                -2.0 )
+              :: !moves);
 
           (* 3. Meld (Chi) *)
-          if state.idx < 27 && state.idx % 9 < 7 && 
-             state.counts.(state.idx+1) > 0 && state.counts.(state.idx+2) > 0 then (
+          if
+            state.idx < 27
+            && state.idx % 9 < 7
+            && state.counts.(state.idx + 1) > 0
+            && state.counts.(state.idx + 2) > 0
+          then (
             let next_c = Array.copy state.counts in
             next_c.(state.idx) <- c - 1;
-            next_c.(state.idx+1) <- next_c.(state.idx+1) - 1;
-            next_c.(state.idx+2) <- next_c.(state.idx+2) - 1;
-            moves := ({ state with 
-                        counts = next_c; 
-                        remaining = state.remaining - 3;
-                        melds = state.melds + 1 
-                      }, -2.0) :: !moves
-          )
-        );
+            next_c.(state.idx + 1) <- next_c.(state.idx + 1) - 1;
+            next_c.(state.idx + 2) <- next_c.(state.idx + 2) - 1;
+            moves :=
+              ( {
+                  state with
+                  counts = next_c;
+                  remaining = state.remaining - 3;
+                  melds = state.melds + 1;
+                },
+                -2.0 )
+              :: !moves));
         (* 4. Head (Pair) *)
         if (not state.has_head) && c >= 2 then (
           let next_c = Array.copy state.counts in

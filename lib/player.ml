@@ -2,9 +2,9 @@
 open Core
 
 type difficulty =
-  | Easy    (** Random discard *)
+  | Easy  (** Random discard *)
   | Medium  (** Pure A* (Efficiency only) *)
-  | Hard    (** Enhanced A* (Efficiency + Score Potential) *)
+  | Hard  (** Enhanced A* (Efficiency + Score Potential) *)
 [@@deriving compare, sexp]
 
 type t = {
@@ -15,6 +15,15 @@ type t = {
   melds : Hand.meld list;
   difficulty : difficulty;
 }
+let tiles_of_meld = function
+  | Hand.Chi (a, b, c) -> [ a; b; c ]
+  | Hand.Pon (a, _, _) -> [ a; a; a ]
+  | Hand.Kan (a, _, _, _) -> [ a; a; a; a ]
+
+let full_tiles (p : t) : Tile.t list =
+  let meld_tiles = List.concat_map p.melds ~f:tiles_of_meld in
+  p.hand @ meld_tiles
+
 
 (* ========================================== *)
 (* 1. Initialization and Accessors *)
@@ -56,9 +65,7 @@ let is_sequence t1 t2 t3 =
       Tile.equal_suit s1 s2 && Tile.equal_suit s2 s3
       &&
       let sorted = List.sort [ n1; n2; n3 ] ~compare:Int.compare in
-      match sorted with
-      | [ a; b; c ] -> a + 1 = b && b + 1 = c
-      | _ -> false)
+      match sorted with [ a; b; c ] -> a + 1 = b && b + 1 = c | _ -> false)
   | _ -> false
 
 let find_chi_options p target =
@@ -89,10 +96,16 @@ let can_kan p target =
   count >= 3
 
 let can_ron p target =
-  Hand.is_complete (Hand.add p.hand target)
+  (* 1. 获取所有牌（手中暗牌 + 副露牌） *)
+  let all_tiles = full_tiles p in
+  (* 2. 将荣和的目标牌加入到所有牌中 *)
+  let final_tiles = Hand.add all_tiles target in
+  (* 3. 检查这 14 张牌是否构成和牌形状 *)
+  Hand.is_complete final_tiles
 
-let can_tsumo p = Hand.is_complete p.hand
-
+let can_tsumo p =
+  let all_tiles = full_tiles p in
+  Hand.is_complete all_tiles
 (* ========================================== *)
 (* 3. Core Actions *)
 (* ========================================== *)
@@ -110,7 +123,8 @@ let perform_chi p target t1 t2 =
             let m =
               match sorted with
               | [ a; b; c ] -> Hand.Chi (a, b, c)
-              | _ -> Hand.Chi (t1, t2, target) (* Fallback *)
+              | _ -> Hand.Chi (t1, t2, target)
+              (* Fallback *)
             in
             Some { p with hand = h2; melds = m :: p.melds; last_drawn = None })
 
@@ -174,7 +188,8 @@ let to_string p =
       | Kan (a, _, _, _) -> Printf.sprintf "[Kan %s]" (Tile.to_string a))
     |> String.concat ~sep:" "
   in
-  Printf.sprintf "[%s] Hand:%s Melds:%s" p.name (Hand.to_string p.hand) melds_str
+  Printf.sprintf "[%s] Hand:%s Melds:%s" p.name (Hand.to_string p.hand)
+    melds_str
 
 let debug_set_hand p tiles =
   { p with hand = tiles; melds = []; last_drawn = None }
@@ -198,7 +213,7 @@ let eval_dora hand dora_indicators =
 let eval_tanyao hand =
   let terminals = List.filter hand ~f:is_terminal_or_honor in
   let count = List.length terminals in
-  if count = 0 then 2.0      (* Pure Tanyao *)
+  if count = 0 then 2.0 (* Pure Tanyao *)
   else if count <= 2 then 1.0 (* Likely Tanyao *)
   else 0.0
 
@@ -209,24 +224,41 @@ let eval_yakuhai hand =
     | Tile.Honor h ->
         let idx =
           match h with
-          | Tile.East -> 0 | Tile.South -> 1 | Tile.West -> 2 | Tile.North -> 3
-          | Tile.Red -> 4 | Tile.Green -> 5 | Tile.White -> 6
+          | Tile.East -> 0
+          | Tile.South -> 1
+          | Tile.West -> 2
+          | Tile.North -> 3
+          | Tile.Red -> 4
+          | Tile.Green -> 5
+          | Tile.White -> 6
         in
         counts.(idx) <- counts.(idx) + 1
     | _ -> ());
   let score = ref 0.0 in
   (* Check Dragons (Indices 4, 5, 6) *)
   for i = 4 to 6 do
-    if counts.(i) >= 3 then score := !score +. 2.0      (* Triplet *)
+    if counts.(i) >= 3 then score := !score +. 2.0 (* Triplet *)
     else if counts.(i) >= 2 then score := !score +. 1.0 (* Pair *)
   done;
   !score
 
 (* 4. Honitsu (Half Flush) Potential: Bonus if one suit dominates *)
 let eval_honitsu hand =
-  let m_count = List.count hand ~f:(function Tile.Numbered (Tile.Man, _) -> true | _ -> false) in
-  let p_count = List.count hand ~f:(function Tile.Numbered (Tile.Pin, _) -> true | _ -> false) in
-  let s_count = List.count hand ~f:(function Tile.Numbered (Tile.Sou, _) -> true | _ -> false) in
+  let m_count =
+    List.count hand ~f:(function
+      | Tile.Numbered (Tile.Man, _) -> true
+      | _ -> false)
+  in
+  let p_count =
+    List.count hand ~f:(function
+      | Tile.Numbered (Tile.Pin, _) -> true
+      | _ -> false)
+  in
+  let s_count =
+    List.count hand ~f:(function
+      | Tile.Numbered (Tile.Sou, _) -> true
+      | _ -> false)
+  in
   let max_suit = Int.max m_count (Int.max p_count s_count) in
   (* Start giving bonuses if > 8 tiles of same suit *)
   if max_suit >= 8 then Float.of_int (max_suit - 7) *. 0.5 else 0.0
@@ -249,15 +281,14 @@ let evaluate_hand_potential hand dora_inds =
 (* AI Decision Implementation                                 *)
 (* ========================================================== *)
 
-(** [Pure Efficiency]
-    Uses Hand.get_recommendations_astar to find discards with max Ukeire. *)
+(** [Pure Efficiency] Uses Hand.get_recommendations_astar to find discards with
+    max Ukeire. *)
 let get_recommendations_pure p visible_counts =
-  if has_full_hand p then
-    Hand.get_recommendations_astar p.hand visible_counts
+  if has_full_hand p then Hand.get_recommendations_astar p.hand visible_counts
   else []
 
-(** [Enhanced AI]
-    Combines Efficiency (Speed) with Static Evaluation (Score Potential). *)
+(** [Enhanced AI] Combines Efficiency (Speed) with Static Evaluation (Score
+    Potential). *)
 let get_recommendations_enhanced p visible_counts dora_indicators =
   if has_full_hand p then
     (* 1. Get efficient candidates *)
@@ -288,6 +319,7 @@ let get_recommendations_enhanced p visible_counts dora_indicators =
         Float.compare s2 s1)
   else []
 
+
 let decide_discard (p : t) (visible_counts : int array)
     (dora_indicators : Tile.t list) : Tile.t option =
   if not (has_full_hand p) then None
@@ -296,8 +328,7 @@ let decide_discard (p : t) (visible_counts : int array)
     | Easy ->
         (* Random discard *)
         let n = List.length p.hand in
-        if n = 0 then None
-        else Some (List.nth_exn p.hand (Random.int n))
+        if n = 0 then None else Some (List.nth_exn p.hand (Random.int n))
     | Medium -> (
         (* Pure A* *)
         match get_recommendations_pure p visible_counts with
@@ -315,4 +346,5 @@ let decide_discard (p : t) (visible_counts : int array)
             | (t, _) :: _ -> Some t
             | [] ->
                 let n = List.length p.hand in
-                if n = 0 then None else Some (List.nth_exn p.hand (Random.int n))))
+                if n = 0 then None
+                else Some (List.nth_exn p.hand (Random.int n))))

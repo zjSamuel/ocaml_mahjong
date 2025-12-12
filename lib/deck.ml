@@ -4,31 +4,38 @@
 open Core
 
 type t = {
-  draw_pile : Tile.t list;       (** The live wall where players draw from *)
-  dead_wall : Tile.t list;       (** The 14 tiles reserved as the Dead Wall *)
-  dora_indicators_count : int;   (** How many dora indicators are currently revealed (1-5) *)
+  draw_pile : Tile.t list;  (** The live wall where players draw from *)
+  dead_wall : Tile.t list;  (** The 14 tiles reserved as the Dead Wall *)
+  dora_indicators_count : int;
+      (** How many dora indicators are currently revealed (1-5) *)
 }
 
 (** Generates a full list of 136 tiles (4 copies of each of the 34 types). *)
 let create_full_list () =
   let suits = [ Tile.Man; Tile.Pin; Tile.Sou ] in
-  let numbers = List.init 9 ~f:(fun i -> i + 1) in (* [1; ...; 9] *)
-  
+  let numbers = List.init 9 ~f:(fun i -> i + 1) in
+  (* [1; ...; 9] *)
+
   (* Generate Numbered tiles *)
   let numbered =
     List.concat_map suits ~f:(fun s ->
-      List.map numbers ~f:(fun n -> Tile.Numbered (s, n)))
+        List.map numbers ~f:(fun n -> Tile.Numbered (s, n)))
   in
-  
+
   (* Generate Honor tiles *)
   let honors =
     [
-      Tile.East; Tile.South; Tile.West; Tile.North;
-      Tile.Red; Tile.Green; Tile.White;
+      Tile.East;
+      Tile.South;
+      Tile.West;
+      Tile.North;
+      Tile.Red;
+      Tile.Green;
+      Tile.White;
     ]
     |> List.map ~f:(fun h -> Tile.Honor h)
   in
-  
+
   let unique_tiles = numbered @ honors in
   (* Create 4 copies of each tile *)
   List.concat_map unique_tiles ~f:(fun t -> [ t; t; t; t ])
@@ -37,14 +44,16 @@ let create_full_list () =
 let shuffle_list lst =
   let tagged = List.map lst ~f:(fun x -> (Random.bits (), x)) in
   (* Sort by the random tag *)
-  let sorted = List.sort tagged ~compare:(fun (a, _) (b, _) -> Int.compare a b) in
+  let sorted =
+    List.sort tagged ~compare:(fun (a, _) (b, _) -> Int.compare a b)
+  in
   List.map sorted ~f:snd
 
 let create () =
   Random.self_init ();
 
   let all = shuffle_list (create_full_list ()) in
-  
+
   (* Split into Dead Wall (14 tiles) and Draw Pile (rest) *)
   let rec split n acc l =
     if n = 0 then (List.rev acc, l)
@@ -54,7 +63,7 @@ let create () =
       | h :: t -> split (n - 1) (h :: acc) t
   in
   let dead, draw = split 14 [] all in
-  
+
   { draw_pile = draw; dead_wall = dead; dora_indicators_count = 1 }
 
 let draw deck =
