@@ -163,11 +163,14 @@ In practice, these yaku are primarily used for:
 * `dune exec bin/main.exe` to start, run on `localhost:3000`.
 * Click tiles to select them; click operation buttons to perform `chi`, `pon`, `kan`, `tsumo`, and `ron`.
 * Play with 3 AI bots. In the UI, you can switch each bot between **Easy / Medium / Hard** logic (random play vs. pure A*-based efficiency vs. enhanced A* with yaku-aware heuristics).
-![alt text](images/image.png)
-![alt text](images/image-1.png)
+![alt text](images/imagecopy1.png)
+![alt text](images/imagecopy2.png)
 * Use the built-in **AI assistant** to see recommended discards and their contribution to shanten / efficiency.
-![alt text](images/image-2.png)
-* To test the new standalone frontend, use `npx http-server . -p 8080` and open `http://127.0.0.1:8080`.
+![alt text](images/imagecopy3.png)
+* Now you can change the difficulty of the bot! Be careful! Bot can win you a big hit!
+![alt text](images/imagecopy4.png)
+![alt text](images/imagecopy5.png)
+
 
 ## Finished functions
 

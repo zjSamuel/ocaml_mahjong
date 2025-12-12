@@ -78,7 +78,7 @@ let create () =
 
     (* C. Manipulate Deck (Rig next draws) *)
     (* Stack: Top -> [Human Draw] -> [AI Draw] -> ... *)
-    let card_for_ai_win = Tile.Numbered (Tile.Man, 5) in
+    let card_for_ai_win = Tile.Numbered (Tile.Man, 6) in
     let card_for_human = Tile.Honor Tile.West in
 
     let d1 = Deck.debug_force_next deck_after_deal card_for_ai_win in
