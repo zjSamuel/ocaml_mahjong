@@ -1,5 +1,3 @@
-(** lib/astar.mli *)
-
 (** [Searchable] Module Type Defines the interface required for a state space to
     be searched using the A* algorithm. Any module that implements this
     signature can be passed to the [Make] functor. *)

@@ -1,7 +1,5 @@
-(* bin/main.ml *)
 open Mahjong
 
-(* 辅助函数：解析牌字符串 *)
 let parse_tile_str s =
   let suits = [ Tile.Man; Tile.Pin; Tile.Sou ] in
   let nums = [ 1; 2; 3; 4; 5; 6; 7; 8; 9 ] in
@@ -27,7 +25,6 @@ let parse_tile_str s =
 
   List.find_opt (fun t -> Tile.to_string t = s) all_unique_tiles
 
-(* 全局游戏状态 *)
 let game_state_ref = ref (Game.create ())
 
 let render_difficulty_badge (diff : Player.difficulty) =
@@ -43,13 +40,12 @@ let render_difficulty_badge (diff : Player.difficulty) =
       "<span style='background:#d63031; color:white; padding:2px 6px; \
        border-radius:4px; font-size:0.7em; vertical-align:middle;'>Hard</span>"
 
-(* [新增] 渲染难度选择控件 *)
 let render_difficulty_controls (game : Game.t) =
   let players = Game.all_players game in
   let rows =
     players
     |> List.mapi (fun i p ->
-           if i = 0 then "" (* 玩家自己不需要设置 AI 难度 *)
+           if i = 0 then ""
            else
              let diff = Player.difficulty p in
              let btn_style current target color =
@@ -92,7 +88,6 @@ let render_difficulty_controls (game : Game.t) =
     \     </div>"
     rows
 
-(* [新增] 渲染役种和分数结果 *)
 let render_score_result (res : Hand.Score.result) =
   let yaku_rows =
     res.yaku_list
@@ -142,7 +137,6 @@ let render_score_result (res : Hand.Score.result) =
     \     </div>"
     res.han yaku_rows res.fu
 
-(* [修改] 渲染副露：使用 Hand.Chi/Pon/Kan *)
 let render_melds (p : Player.t) =
   Player.melds p
   |> List.map (function
@@ -168,7 +162,6 @@ let render_melds (p : Player.t) =
              (Tile.to_string a))
   |> String.concat " "
 
-(* 渲染单张牌 *)
 let render_single_tile (tile : Tile.t) (idx : int) (is_clickable : bool)
     (is_new : bool) =
   let tile_str = Tile.to_string tile in
@@ -190,7 +183,6 @@ let render_single_tile (tile : Tile.t) (idx : int) (is_clickable : bool)
     Printf.sprintf "<div class='%s' style='%s'>%s</div>" class_str style_extra
       tile_str
 
-(* 渲染主界面 *)
 let render_html (game : Game.t) : string =
   let all_players = Game.all_players game in
   let human_p = List.nth all_players 0 in
@@ -205,13 +197,11 @@ let render_html (game : Game.t) : string =
   let drawn_opt = Player.last_drawn human_p in
   let last_discard_opt = Game.last_discard game in
 
-  (* AI 助手区域：集成全场可见牌统计 *)
   let suggestion_html =
     if can_discard then
       let visible = Game.get_visible_counts game 0 in
       let indicators = Game.get_dora_indicators game in
 
-      (* 调用增强版 API *)
       let recommendations =
         Player.get_recommendations_enhanced human_p visible indicators
       in
@@ -220,7 +210,6 @@ let render_html (game : Game.t) : string =
       let rows =
         top3
         |> List.map (fun (tile, count, score) ->
-               (* 注意这里解构了 score *)
                Printf.sprintf
                  "<div style='display:flex; align-items:center; \
                   margin-bottom:8px; background:rgba(0,0,0,0.2); padding:5px; \
@@ -257,7 +246,6 @@ let render_html (game : Game.t) : string =
        font-size:0.9em; color:#888;'>Waiting for draw...</div></div>"
   in
 
-  (* 操作按钮区域 *)
   let action_buttons_html =
     match last_discard_opt with
     | None -> ""
@@ -345,7 +333,6 @@ let render_html (game : Game.t) : string =
     else ""
   in
 
-  (* 渲染手牌 *)
   let indexed_hand = List.mapi (fun i t -> (t, i + 1)) full_hand in
   let main_part, special_part =
     match (can_discard, drawn_opt) with
@@ -375,7 +362,6 @@ let render_html (game : Game.t) : string =
     |> List.map (fun i ->
            if i < List.length all_players then
              let p = List.nth all_players i in
-             (* [修改] 名字旁边加上难度 *)
              let name_html =
                Printf.sprintf "%s %s" (Player.name p)
                  (render_difficulty_badge (Player.difficulty p))
@@ -425,7 +411,6 @@ let render_html (game : Game.t) : string =
     else ""
   in
 
-  (* 宝牌指示牌 *)
   let indicators = Game.get_dora_indicators game in
   let dora_html =
     indicators
@@ -632,14 +617,11 @@ let () =
          Dream.post "/bot_move" (fun req ->
              let g = !game_state_ref in
              if Game.current_player_id g <> 0 then (
-               (* 执行机器人的一步 *)
                let ng, _ = Game.play_bot_step g in
                game_state_ref := ng;
 
-               (* [新增] 检查机器人是否赢了 *)
                match Game.winner ng with
                | Some winner_p ->
-                   (* 机器人胡牌！计算番数并显示 *)
                    let indicators = Game.get_dora_indicators ng in
                    let score_res =
                      Hand.calculate_score (Player.hand winner_p)
@@ -675,7 +657,6 @@ let () =
                         (Hand.to_string (Player.hand winner_p))
                         score_html)
                | None ->
-                   (* 没有赢，继续游戏 *)
                    Dream.redirect req "/")
              else Dream.redirect req "/");
          Dream.post "/chi" (fun req ->
@@ -724,7 +705,6 @@ let () =
                      | None -> Dream.redirect req "/")
                  | None -> Dream.redirect req "/")
              | _ -> Dream.redirect req "/");
-         (* [修改] 荣和：调用 calculate_score 并显示役种 *)
          Dream.post "/win_ron" (fun request ->
              match%lwt Dream.form ~csrf:false request with
              | `Ok form -> (
@@ -790,7 +770,6 @@ let () =
                      | None -> Dream.redirect request "/")
                  | None -> Dream.redirect request "/")
              | _ -> Dream.redirect request "/");
-         (* [修改] 自摸：调用 calculate_score 并显示役种 *)
          Dream.post "/win" (fun _ ->
              let game = !game_state_ref in
              let all_p = Game.all_players game in

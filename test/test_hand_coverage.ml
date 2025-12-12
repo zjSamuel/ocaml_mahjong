@@ -2,10 +2,6 @@ open Core
 open OUnit2
 open Mahjong
 
-(* ========================================== *)
-(* Helpers *)
-(* ========================================== *)
-
 let parse_tile_str s =
   let val_char = s.[0] in
   let type_char = s.[1] in
@@ -26,11 +22,10 @@ let parse_tile_str s =
 
 let make_hand str_list = List.map str_list ~f:parse_tile_str
 
-(* 快速断言某个役种存在的辅助函数 *)
 let assert_has_yaku ?(msg="") result target_yaku =
   let found = List.exists result.Hand.Score.yaku_list ~f:(fun y -> 
     match (y, target_yaku) with
-    | (Hand.Score.Yakuhai _, Hand.Score.Yakuhai _) -> true (* 简化 Yakuhai 比较 *)
+    | (Hand.Score.Yakuhai _, Hand.Score.Yakuhai _) -> true
     | (Hand.Score.Dora _, Hand.Score.Dora _) -> true
     | (a, b) -> Poly.(=) a b
   ) in
@@ -43,26 +38,17 @@ let assert_score ?(melds=[]) ?(dora=[]) hand check_fn =
   | None -> assert_failure "Failed to calculate score for valid hand"
   | Some res -> check_fn res
 
-(* ========================================== *)
-(* 1. Basic Utility Tests *)
-(* ========================================== *)
 
 let test_utils _ =
   let t1 = Tile.Numbered(Tile.Man, 1) in
   let hand = [t1; Tile.Numbered(Tile.Man, 2)] in
   
-  (* Test to_string *)
   assert_bool "to_string check" (String.length (Hand.to_string hand) > 0);
   assert_equal "(empty)" (Hand.to_string []);
   
-  (* Test remove_first *)
   match Hand.remove_first hand t1 with
   | Some rest -> assert_equal 1 (List.length rest)
   | None -> assert_failure "Should remove tile"
-
-(* ========================================== *)
-(* 2. Standard Yaku Tests (Structural) *)
-(* ========================================== *)
 
 let test_pinfu _ =
   (* 234m 345p 678s 234s 99p(Pair) - No honors, all seqs *)
@@ -99,9 +85,6 @@ let test_chiitoitsu _ =
   let hand = make_hand ["1m";"1m"; "9m";"9m"; "1p";"1p"; "9p";"9p"; "1s";"1s"; "9s";"9s"; "1z";"1z"] in
   assert_score hand (fun res -> assert_has_yaku res Hand.Score.Chiitoitsu)
 
-(* ========================================== *)
-(* 3. Pattern Yaku Tests (Sanshoku, Itsu) *)
-(* ========================================== *)
 
 let test_sanshoku _ =
   (* 123m 123p 123s + ... *)
@@ -118,9 +101,6 @@ let test_itsu _ =
   let hand = make_hand ["1m";"2m";"3m"; "4m";"5m";"6m"; "7m";"8m";"9m"; "1p";"1p";"1p"; "7z";"7z"] in
   assert_score hand (fun res -> assert_has_yaku res Hand.Score.Itsu)
 
-(* ========================================== *)
-(* 4. Terminal/Honor Yaku Tests *)
-(* ========================================== *)
 
 let test_chanta _ =
   (* Mixed Triplets/Seqs, all contain 1/9/Honor *)
@@ -145,9 +125,6 @@ let test_shousangen _ =
   let hand = make_hand ["5z";"5z";"5z"; "6z";"6z";"6z"; "7z";"7z"; "1m";"2m";"3m"; "9p";"9p";"9p"] in
   assert_score hand (fun res -> assert_has_yaku res Hand.Score.Shousangen)
 
-(* ========================================== *)
-(* 5. Suit Yaku Tests *)
-(* ========================================== *)
 
 let test_chinitsu _ =
   (* All Manzu *)
@@ -159,9 +136,6 @@ let test_honitsu _ =
   let hand = make_hand ["1m";"1m";"1m"; "1z";"1z";"1z"; "2z";"2z";"2z"; "3z";"3z"; "3z"; "4z"; "4z"] in
   assert_score hand (fun res -> assert_has_yaku res Hand.Score.Honitsu)
 
-(* ========================================== *)
-(* 6. Dora & Situational Tests *)
-(* ========================================== *)
 
 let test_dora_score _ =
   (* Hand with 3x 1m. Indicator is 9m -> Dora is 1m. *)
@@ -173,9 +147,6 @@ let test_dora_score _ =
     assert_equal 3 dora_count ~msg:"Should have 3 Dora"
   )
 
-(* ========================================== *)
-(* 7. A* Efficiency & Shanten Corner Cases *)
-(* ========================================== *)
 
 let test_efficiency_complex _ =
   (* A hand with many options. 1-shanten. *)
@@ -197,9 +168,6 @@ let test_shanten_impossible _ =
   (* Standard should be high *)
   assert_bool "High shanten" (shanten >= 3)
 
-(* ========================================== *)
-(* Suite Definition *)
-(* ========================================== *)
 
 let suite =
   "HandCoverageTests" >::: [

@@ -1,4 +1,3 @@
-(** lib/game.mli *)
 
 type t
 (** Abstract type representing the game state. *)

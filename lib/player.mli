@@ -1,4 +1,3 @@
-(** lib/player.mli *)
 
 type difficulty = Easy | Medium | Hard
 

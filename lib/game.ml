@@ -36,27 +36,25 @@ let create () =
   let enable_cheat = false in
 
   if enable_cheat then (
-    (* A. Setup Human Hand (Player 0) *)
     let human_hand =
       [
         Tile.Numbered (Tile.Man, 1);
-        Tile.Numbered (Tile.Man, 9);
-        Tile.Numbered (Tile.Pin, 1);
-        Tile.Numbered (Tile.Pin, 9);
-        Tile.Numbered (Tile.Sou, 1);
+        Tile.Numbered (Tile.Man, 1);
+        Tile.Numbered (Tile.Man, 1);
+        Tile.Numbered (Tile.Man, 2);
+        Tile.Numbered (Tile.Man, 2);
+        Tile.Numbered (Tile.Man, 2);
+        Tile.Numbered (Tile.Man, 3);
+        Tile.Numbered (Tile.Man, 3);
+        Tile.Numbered (Tile.Man, 3);
+        Tile.Numbered (Tile.Man, 4);
+        Tile.Numbered (Tile.Man, 4);
         Tile.Numbered (Tile.Sou, 9);
-        Tile.Honor Tile.East;
-        Tile.Honor Tile.South;
-        Tile.Honor Tile.West;
-        Tile.Honor Tile.North;
-        Tile.Honor Tile.White;
-        Tile.Honor Tile.Green;
-        Tile.Honor Tile.Red;
+        Tile.Numbered (Tile.Man, 9);
       ]
     in
     players.(0) <- Player.debug_set_hand players.(0) human_hand;
 
-    (* B. Setup AI Hand (Player 1) - Tenpai for Suuankou *)
     let ai_hand =
       [
         Tile.Numbered (Tile.Man, 1);
@@ -70,35 +68,64 @@ let create () =
         Tile.Numbered (Tile.Man, 3);
         Tile.Numbered (Tile.Man, 4);
         Tile.Numbered (Tile.Man, 4);
-        Tile.Numbered (Tile.Man, 4);
-        Tile.Numbered (Tile.Man, 5);
+        Tile.Numbered (Tile.Sou, 9);
+        Tile.Numbered (Tile.Man, 9);
       ]
     in
     players.(1) <- Player.debug_set_hand players.(1) ai_hand;
 
-    (* C. Manipulate Deck (Rig next draws) *)
-    (* Stack: Top -> [Human Draw] -> [AI Draw] -> ... *)
-    let card_for_ai_win = Tile.Numbered (Tile.Man, 6) in
-    let card_for_human = Tile.Honor Tile.West in
+    let ai_hand =
+      [
+        Tile.Numbered (Tile.Man, 1);
+        Tile.Numbered (Tile.Man, 1);
+        Tile.Numbered (Tile.Man, 1);
+        Tile.Numbered (Tile.Man, 2);
+        Tile.Numbered (Tile.Man, 2);
+        Tile.Numbered (Tile.Man, 2);
+        Tile.Numbered (Tile.Man, 3);
+        Tile.Numbered (Tile.Man, 3);
+        Tile.Numbered (Tile.Man, 3);
+        Tile.Numbered (Tile.Man, 4);
+        Tile.Numbered (Tile.Man, 4);
+        Tile.Numbered (Tile.Sou, 9);
+        Tile.Numbered (Tile.Man, 9);
+      ]
+    in
+    players.(2) <- Player.debug_set_hand players.(2) ai_hand;
 
-    let d1 = Deck.debug_force_next deck_after_deal card_for_ai_win in
-    let final_deck = Deck.debug_force_next d1 card_for_human in
+        let ai_hand =
+      [
+        Tile.Numbered (Tile.Man, 1);
+        Tile.Numbered (Tile.Man, 1);
+        Tile.Numbered (Tile.Man, 1);
+        Tile.Numbered (Tile.Man, 2);
+        Tile.Numbered (Tile.Man, 2);
+        Tile.Numbered (Tile.Man, 2);
+        Tile.Numbered (Tile.Man, 3);
+        Tile.Numbered (Tile.Man, 3);
+        Tile.Numbered (Tile.Man, 3);
+        Tile.Numbered (Tile.Man, 4);
+        Tile.Numbered (Tile.Man, 4);
+        Tile.Numbered (Tile.Sou, 9);
+        Tile.Numbered (Tile.Man, 9);
+      ]
+    in
+    players.(3) <- Player.debug_set_hand players.(3) ai_hand;
 
-    { deck = final_deck; players; current_player_idx = 0 })
+    (* let card_for_ai_win = Tile.Numbered (Tile.Man, 6) in *)
+    (* let card_for_human = Tile.Honor Tile.West in *)
+
+    (* let d1 = Deck.debug_force_next deck_after_deal card_for_ai_win in *)
+    (* let final_deck = Deck.debug_force_next d1 card_for_human in *)
+
+    { deck = deck_after_deal; players; current_player_idx = 0 })
   else { deck = deck_after_deal; players; current_player_idx = 0 }
 
-(* ========================================== *)
-(* 2. Basic Accessors *)
-(* ========================================== *)
 
 let current_player g = g.players.(g.current_player_idx)
 let current_player_id g = g.current_player_idx
 let remaining_tiles g = Deck.remaining g.deck
 let all_players g = Array.to_list g.players
-
-(* ========================================== *)
-(* 3. State Checks & Visible Counting *)
-(* ========================================== *)
 
 let can_current_player_discard g =
   let p = current_player g in
@@ -127,7 +154,6 @@ let add_tiles_to_counts counts tiles =
 let get_visible_counts g viewer_idx =
   let counts = Array.create ~len:34 0 in
 
-  (* Add discards and melds from all players *)
   Array.iter g.players ~f:(fun p ->
       add_tiles_to_counts counts (Player.discards p);
       List.iter (Player.melds p) ~f:(function
@@ -136,17 +162,12 @@ let get_visible_counts g viewer_idx =
         | Hand.Kan (t1, t2, t3, t4) ->
             add_tiles_to_counts counts [ t1; t2; t3; t4 ]));
 
-  (* Add viewer's own hand (because they can see it!) *)
   let viewer = g.players.(viewer_idx) in
   add_tiles_to_counts counts (Player.hand viewer);
 
   counts
 
 let get_dora_indicators g = Deck.get_dora_indicators g.deck
-
-(* ========================================== *)
-(* 4. Core Loop Actions *)
-(* ========================================== *)
 
 let draw_card g =
   if can_current_player_discard g then (g, None)
@@ -158,7 +179,6 @@ let draw_card g =
         match Player.draw_tile p g.deck with
         | None ->
             (g, None)
-            (* Should use new_deck logic properly in Player, implied here *)
         | Some (new_player, _) ->
             let new_players = Array.copy g.players in
             new_players.(g.current_player_idx) <- new_player;
@@ -178,10 +198,6 @@ let discard_card g tile =
         let next_g = next_turn { g with players = new_players } in
         (next_g, Some tile)
 
-(* ========================================== *)
-(* 5. Interactions (Melds) *)
-(* ========================================== *)
-
 let perform_chi g target t1 t2 =
   let p = current_player g in
   match Player.perform_chi p target t1 t2 with
@@ -193,13 +209,11 @@ let perform_chi g target t1 t2 =
 
 let perform_pon g target =
   let p0 = g.players.(0) in
-  (* Assuming P0 is human for now *)
   match Player.perform_pon p0 target with
   | None -> (g, false)
   | Some new_p0 ->
       let new_players = Array.copy g.players in
       new_players.(0) <- new_p0;
-      (* After Pon, it becomes P0's turn to discard *)
       ({ g with players = new_players; current_player_idx = 0 }, true)
 
 let perform_kan g target =
@@ -207,24 +221,17 @@ let perform_kan g target =
   match Player.perform_kan p target with
   | None -> (g, false)
   | Some p_after_meld -> (
-      (* 1. Reveal new Dora *)
       let deck_flipped = Deck.add_dora_indicator g.deck in
 
-      (* 2. Draw Rinshan *)
       match Deck.draw_rinshan deck_flipped with
       | None -> (g, false)
       | Some (tile_drawn, final_deck) ->
-          (* 3. Add to hand *)
           let p_final = Player.add_drawn_tile p_after_meld tile_drawn in
           let new_players = Array.copy g.players in
           new_players.(0) <- p_final;
 
           ( { deck = final_deck; players = new_players; current_player_idx = 0 },
             true ))
-
-(* ========================================== *)
-(* 6. Bot Logic *)
-(* ========================================== *)
 
 let set_bot_difficulty g idx diff =
   if idx < 0 || idx > 3 then g
@@ -236,20 +243,16 @@ let set_bot_difficulty g idx diff =
 let play_bot_step g =
   let p = current_player g in
 
-  (* 1. Draw Phase *)
   match Player.draw_tile p g.deck with
   | None -> (g, false)
   | Some (p_drawn, deck_after_draw) -> (
       if
-        (* 2. Check Tsumo *)
         Player.can_tsumo p_drawn
       then (
         let nps = Array.copy g.players in
         nps.(g.current_player_idx) <- p_drawn;
         ({ g with deck = deck_after_draw; players = nps }, true))
       else
-        (* 3. AI Think & Discard *)
-        (* Construct the game state with the drawn card temporarily to calculate visibility *)
         let temp_players = Array.copy g.players in
         temp_players.(g.current_player_idx) <- p_drawn;
         let temp_game =
@@ -260,7 +263,7 @@ let play_bot_step g =
         let doras = Deck.get_dora_indicators g.deck in
 
         match Player.decide_discard p_drawn visible doras with
-        | None -> (g, false) (* Should not happen for full hand *)
+        | None -> (g, false)
         | Some tile_to_discard -> (
             match Player.discard_tile p_drawn tile_to_discard with
             | None -> (g, false)

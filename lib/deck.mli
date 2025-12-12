@@ -1,4 +1,3 @@
-(** lib/deck.mli *)
 (** Abstract type representing the deck (wall) state. *)
 type t
 

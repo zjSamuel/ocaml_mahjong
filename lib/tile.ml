@@ -1,5 +1,3 @@
-(* lib/tile.ml *)
-
 open Core
 [@@@coverage off]
 type suit =
@@ -24,13 +22,11 @@ type t =
 [@@deriving compare, equal, sexp]
 
 [@@@coverage on]
-(** Helper: Convert suit to integer for strict ordering (Man=0, Pin=1, Sou=2) *)
 let suit_to_int = function
   | Man -> 0
   | Pin -> 1
   | Sou -> 2
 
-(** Helper: Convert honor to integer for strict ordering *)
 let honor_to_int = function
   | East -> 0
   | South -> 1
@@ -40,20 +36,15 @@ let honor_to_int = function
   | Green -> 5
   | White -> 6
 
-(** Custom comparison function to ensure standard Mahjong sorting order:
-    Man < Pin < Sou < Honors *)
 let compare t1 t2 =
   match (t1, t2) with
   | Numbered (s1, n1), Numbered (s2, n2) ->
-      (* First compare suits *)
       let sc = Int.compare (suit_to_int s1) (suit_to_int s2) in
       if sc <> 0 then sc
       else
-        (* If suits are same, compare numbers *)
         Int.compare n1 n2
   | Honor h1, Honor h2 ->
       Int.compare (honor_to_int h1) (honor_to_int h2)
-  (* Numbered tiles always come before Honor tiles *)
   | Numbered _, Honor _ -> -1
   | Honor _, Numbered _ -> 1
 

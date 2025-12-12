@@ -1,5 +1,3 @@
-(** hand.mli — Hand Structure and Helper Operations *)
-(** lib/hand.mli *)
 
 type t = Tile.t list
 [@@deriving sexp]

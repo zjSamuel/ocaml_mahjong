@@ -2,9 +2,6 @@ open Core
 open OUnit2
 open Mahjong
 
-(* ========================================== *)
-(* 1. Helpers                                 *)
-(* ========================================== *)
 
 let parse_tile_str s =
   let val_char = s.[0] in
@@ -27,17 +24,11 @@ let parse_tile_str s =
 let make_hand strs = List.map strs ~f:parse_tile_str
 let empty_visible = Array.create ~len:34 0
 
-(* ========================================== *)
-(* 2. Game Logic Coverage (Fixed Flaky Test)  *)
-(* ========================================== *)
-
 let test_game_logic_coverage _ =
-  (* --- Test 1: is_over & winner --- *)
   let g = Game.create () in
   assert_bool "New game not over" (not (Game.is_over g));
   assert_equal None (Game.winner g);
 
-  (* 模拟抽干牌堆 *)
   let rec drain_deck g =
     if Game.remaining_tiles g = 0 then g
     else match Game.draw_card g with
@@ -49,7 +40,6 @@ let test_game_logic_coverage _ =
   let g_empty = drain_deck g in
   assert_bool "Empty deck means over" (Game.is_over g_empty);
 
-  (* 模拟 P0 自摸胡牌 *)
   let win_hand = make_hand ["1m";"1m";"1m"; "2m";"2m";"2m"; "3m";"3m";"3m"; "4m";"4m";"4m"; "5m";"5m"] in
   let p0_win = Player.debug_set_hand (Game.current_player g) win_hand in
   let g_win = Game.debug_set_player g 0 p0_win in
@@ -57,7 +47,6 @@ let test_game_logic_coverage _ =
   | Some p -> assert_equal "Player0" (Player.name p)
   | None -> assert_failure "Should detect winner");
 
-  (* --- Test 2: last_discard --- *)
   assert_equal None (Game.last_discard g);
   let g_turn0, drawn = Game.draw_card g in
   let discard_tile = Option.value_exn drawn in
@@ -66,31 +55,26 @@ let test_game_logic_coverage _ =
   | Some t -> assert_bool "Last discard matches" (Tile.equal t discard_tile)
   | None -> assert_failure "Should have last discard");
 
-  (* --- Test 3: get_visible_counts [FIXED] --- *)
   let g_vis = Game.create () in
   
-  (* [关键修复] 清空 P0 (观察者) 的手牌，防止随机发牌导致计数干扰 *)
   let p0_clean = Player.debug_set_hand (List.nth_exn (Game.all_players g_vis) 0) [] in
   let g_vis = Game.debug_set_player g_vis 0 p0_clean in
 
-  (* 设置 P1 进行操作 *)
   let p1_orig = List.nth_exn (Game.all_players g_vis) 1 in
   let p1_setup = Player.debug_set_hand p1_orig (make_hand ["1m"; "2m"; "2m"; "3m"; "4m"]) in
-  (* P1 切 1m *)
+
   let p1_discarded = Player.discard_tile p1_setup (Tile.Numbered(Tile.Man, 1)) |> Option.value_exn in
-  (* P1 碰 2m *)
+
   let p1_pon = Player.perform_pon p1_discarded (Tile.Numbered(Tile.Man, 2)) |> Option.value_exn in
-  (* 放回游戏 *)
+
   let g_vis = Game.debug_set_player g_vis 1 p1_pon in
   
-  (* 验证计数: 应该只有 P1 的操作可见 (1张1m弃牌, 3张2m副露) *)
   let counts = Game.get_visible_counts g_vis 0 in
   let id_1m = Hand.tile_to_id (Tile.Numbered(Tile.Man, 1)) in
   let id_2m = Hand.tile_to_id (Tile.Numbered(Tile.Man, 2)) in
   assert_equal 1 counts.(id_1m) ~msg:"1m count wrong";
   assert_equal 3 counts.(id_2m) ~msg:"2m count wrong";
 
-  (* --- Test 4: perform_pon --- *)
   let g_pon_setup = Game.create () in
   let p0_ready = Player.debug_set_hand (Game.current_player g_pon_setup) (make_hand ["6z"; "6z"; "1m"]) in
   let g_pon_setup = Game.debug_set_player g_pon_setup 0 p0_ready in
@@ -98,7 +82,6 @@ let test_game_logic_coverage _ =
   assert_bool "Pon success" success;
   assert_equal 0 (Game.current_player_id g_poned);
   
-  (* --- Test 5: perform_kan --- *)
   let g_kan_setup = Game.create () in
   let p0_kan_ready = Player.debug_set_hand (Game.current_player g_kan_setup) (make_hand ["7z"; "7z"; "7z"; "1m"]) in
   let g_kan_setup = Game.debug_set_player g_kan_setup 0 p0_kan_ready in
@@ -108,7 +91,6 @@ let test_game_logic_coverage _ =
   let p0_after = Game.current_player g_kaned in
   assert_equal 2 (List.length (Player.hand p0_after));
 
-  (* --- Test 6: set_bot_difficulty --- *)
   let g_diff = Game.create () in
   let g_diff = Game.set_bot_difficulty g_diff 1 Player.Hard in
   let p1_diff = List.nth_exn (Game.all_players g_diff) 1 in
@@ -116,9 +98,6 @@ let test_game_logic_coverage _ =
   | Player.Hard -> ()
   | _ -> assert_failure "Difficulty not set")
 
-(* ========================================== *)
-(* 3. Tile Module Coverage                    *)
-(* ========================================== *)
 
 let test_tile_exhaustive _ =
   assert_equal 0 (Tile.compare_suit Tile.Man Tile.Man);
@@ -143,10 +122,6 @@ let test_tile_exhaustive _ =
   let _ = Tile.next_dora n9 in
   let _ = Tile.to_string n1 in
   ()
-
-(* ========================================== *)
-(* 4. Player/Tile Tests (Consolidated)        *)
-(* ========================================== *)
 
 let test_player_predicates _ =
   let p = Player.create "PredBot" in
@@ -194,12 +169,8 @@ let test_player_basics _ =
   let p = Player.set_difficulty p Player.Hard in
   (match Player.difficulty p with Player.Hard -> () | _ -> assert_failure "Diff")
 
-(* ========================================== *)
-(* 5. Game Bot Branches                       *)
-(* ========================================== *)
 
 let test_game_bot_branches _ =
-  (* A. Deck Empty *)
   let g = Game.create () in
   let rec drain_all g =
     if Game.remaining_tiles g = 0 then g
@@ -209,7 +180,6 @@ let test_game_bot_branches _ =
   let _, success = Game.play_bot_step g_empty in
   assert_bool "Bot fails when deck empty" (not success);
   
-  (* B. Tsumo *)
   let g2 = Game.create () in
   let tenpai_hand = make_hand ["1m";"1m";"1m"; "2m";"2m";"2m"; "3m";"3m";"3m"; "4m";"4m";"4m"; "5m"] in
   let p1 = List.nth_exn (Game.all_players g2) 1 in
@@ -234,9 +204,6 @@ let test_game_bot_branches _ =
   assert_bool "Bot successfully acted (Tsumo)" success;
   assert_equal 1 (Game.current_player_id g_after)
 
-(* ========================================== *)
-(* Suite Registration                         *)
-(* ========================================== *)
 
 let suite =
   "GapCoverageTests" >::: [

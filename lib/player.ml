@@ -1,4 +1,3 @@
-(* lib/player.ml *)
 open Core
 
 type difficulty =
@@ -24,10 +23,6 @@ let full_tiles (p : t) : Tile.t list =
   let meld_tiles = List.concat_map p.melds ~f:tiles_of_meld in
   p.hand @ meld_tiles
 
-
-(* ========================================== *)
-(* 1. Initialization and Accessors *)
-(* ========================================== *)
 
 let create name =
   {
@@ -55,9 +50,6 @@ let tile_count p =
 
 let has_full_hand p = tile_count p >= 14
 
-(* ========================================== *)
-(* 2. Rule Validation *)
-(* ========================================== *)
 
 let is_sequence t1 t2 t3 =
   match (t1, t2, t3) with
@@ -96,19 +88,13 @@ let can_kan p target =
   count >= 3
 
 let can_ron p target =
-  (* 1. 获取所有牌（手中暗牌 + 副露牌） *)
   let all_tiles = full_tiles p in
-  (* 2. 将荣和的目标牌加入到所有牌中 *)
   let final_tiles = Hand.add all_tiles target in
-  (* 3. 检查这 14 张牌是否构成和牌形状 *)
   Hand.is_complete final_tiles
 
 let can_tsumo p =
   let all_tiles = full_tiles p in
   Hand.is_complete all_tiles
-(* ========================================== *)
-(* 3. Core Actions *)
-(* ========================================== *)
 
 let perform_chi p target t1 t2 =
   if not (is_sequence t1 t2 target) then None
@@ -139,7 +125,6 @@ let perform_pon p target =
           Some { p with hand = h2; melds = m :: p.melds; last_drawn = None })
 
 let perform_kan p target =
-  (* Helper to remove 3 copies *)
   let rec remove_3 h count acc =
     if count = 0 then Some (List.rev acc @ h)
     else
@@ -194,22 +179,17 @@ let to_string p =
 let debug_set_hand p tiles =
   { p with hand = tiles; melds = []; last_drawn = None }
 
-(* ========================================================== *)
-(* AI Heuristics: Static Evaluation Functions                 *)
-(* ========================================================== *)
 
 let is_terminal_or_honor = function
   | Tile.Honor _ -> true
   | Tile.Numbered (_, n) -> n = 1 || n = 9
 
-(* 1. Dora Value: Count number of doras in hand *)
 let eval_dora hand dora_indicators =
   let doras = List.map dora_indicators ~f:Tile.next_dora in
   List.fold hand ~init:0 ~f:(fun acc t ->
       let matches = List.count doras ~f:(fun d -> Tile.compare t d = 0) in
       acc + matches)
 
-(* 2. Tanyao Potential: Prefer hands with fewer terminals/honors *)
 let eval_tanyao hand =
   let terminals = List.filter hand ~f:is_terminal_or_honor in
   let count = List.length terminals in
@@ -217,7 +197,6 @@ let eval_tanyao hand =
   else if count <= 2 then 1.0 (* Likely Tanyao *)
   else 0.0
 
-(* 3. Yakuhai Potential: Bonus for dragon/wind pairs or triplets *)
 let eval_yakuhai hand =
   let counts = Array.create ~len:7 0 in
   List.iter hand ~f:(function
@@ -235,14 +214,12 @@ let eval_yakuhai hand =
         counts.(idx) <- counts.(idx) + 1
     | _ -> ());
   let score = ref 0.0 in
-  (* Check Dragons (Indices 4, 5, 6) *)
   for i = 4 to 6 do
     if counts.(i) >= 3 then score := !score +. 2.0 (* Triplet *)
     else if counts.(i) >= 2 then score := !score +. 1.0 (* Pair *)
   done;
   !score
 
-(* 4. Honitsu (Half Flush) Potential: Bonus if one suit dominates *)
 let eval_honitsu hand =
   let m_count =
     List.count hand ~f:(function
@@ -260,10 +237,8 @@ let eval_honitsu hand =
       | _ -> false)
   in
   let max_suit = Int.max m_count (Int.max p_count s_count) in
-  (* Start giving bonuses if > 8 tiles of same suit *)
   if max_suit >= 8 then Float.of_int (max_suit - 7) *. 0.5 else 0.0
 
-(* Comprehensive Evaluation: Speed (from A* ) + Value (from here) *)
 let evaluate_hand_potential hand dora_inds =
   let score = ref 0.0 in
   let w_dora = 1.5 in
@@ -277,27 +252,16 @@ let evaluate_hand_potential hand dora_inds =
   score := !score +. (eval_honitsu hand *. w_honitsu);
   !score
 
-(* ========================================================== *)
-(* AI Decision Implementation                                 *)
-(* ========================================================== *)
-
-(** [Pure Efficiency] Uses Hand.get_recommendations_astar to find discards with
-    max Ukeire. *)
 let get_recommendations_pure p visible_counts =
   if has_full_hand p then Hand.get_recommendations_astar p.hand visible_counts
   else []
 
-(** [Enhanced AI] Combines Efficiency (Speed) with Static Evaluation (Score
-    Potential). *)
 let get_recommendations_enhanced p visible_counts dora_indicators =
   if has_full_hand p then
-    (* 1. Get efficient candidates *)
     let candidates = Hand.get_recommendations_astar p.hand visible_counts in
 
-    (* 2. Score candidates based on future potential *)
     let weighted_candidates =
       List.map candidates ~f:(fun (tile_to_discard, ukeire) ->
-          (* Simulate discarding this tile *)
           let hand_after_discard =
             match Hand.remove_first p.hand tile_to_discard with
             | Some h -> h
@@ -308,13 +272,11 @@ let get_recommendations_enhanced p visible_counts dora_indicators =
             evaluate_hand_potential hand_after_discard dora_indicators
           in
 
-          (* Final Score = Ukeire + Potential *)
           let final_score = Float.of_int ukeire +. potential_score in
 
           (tile_to_discard, ukeire, final_score))
     in
 
-    (* 3. Sort by final score descending *)
     List.sort weighted_candidates ~compare:(fun (_, _, s1) (_, _, s2) ->
         Float.compare s2 s1)
   else []
@@ -326,22 +288,18 @@ let decide_discard (p : t) (visible_counts : int array)
   else
     match p.difficulty with
     | Easy ->
-        (* Random discard *)
         let n = List.length p.hand in
         if n = 0 then None else Some (List.nth_exn p.hand (Random.int n))
     | Medium -> (
-        (* Pure A* *)
         match get_recommendations_pure p visible_counts with
         | (t, _) :: _ -> Some t
         | [] ->
             let n = List.length p.hand in
             if n = 0 then None else Some (List.nth_exn p.hand (Random.int n)))
     | Hard -> (
-        (* Enhanced A* *)
         match get_recommendations_enhanced p visible_counts dora_indicators with
         | (t, _, _) :: _ -> Some t
         | [] -> (
-            (* Fallback to Medium *)
             match get_recommendations_pure p visible_counts with
             | (t, _) :: _ -> Some t
             | [] ->

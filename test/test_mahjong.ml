@@ -2,10 +2,6 @@ open Core
 open OUnit2
 open Mahjong
 
-(* ========================================== *)
-(* 1. Helpers & Setup *)
-(* ========================================== *)
-
 let parse_tile_str s =
   let val_char = s.[0] in
   let type_char = s.[1] in
@@ -31,19 +27,14 @@ let create_player_with_hand hand_strs =
   let p = Player.create "TestBot" in
   Player.debug_set_hand p (make_hand hand_strs)
 
-(* 修复：此函数现在被 test_to_string 使用，不再报 unused warning *)
 let assert_string_contains str sub =
   let found = String.is_substring str ~substring:sub in
   if not found then
     assert_failure (Printf.sprintf "String %S does not contain %S" str sub)
 
-(* ========================================== *)
-(* 2. Deck Tests *)
-(* ========================================== *)
 
 let test_deck_basic _ =
   let d = Deck.create () in
-  (* 136 total - 14 dead wall = 122 draw pile *)
   assert_equal 122 (Deck.remaining d) ~msg:"Initial deck size incorrect";
   let indicators = Deck.get_dora_indicators d in
   assert_equal 1 (List.length indicators) ~msg:"Start with 1 dora indicator"
@@ -58,9 +49,6 @@ let test_deck_rinshan_and_dora _ =
   | Some (_, d_after) ->
       assert_equal (Deck.remaining d - 1) (Deck.remaining d_after) ~msg:"Rinshan should consume a tile"
 
-(* ========================================== *)
-(* 3. Hand Tests (Yaku & Shanten) *)
-(* ========================================== *)
 
 let test_win_hand _ =
   let hand = make_hand ["1m";"1m";"1p";"2p";"3p";"4s";"5s";"6s";"7s";"8s";"9s";"9m";"9m";"9m"] in
@@ -73,7 +61,6 @@ let test_tenpai_hand _ =
 
 let test_yaku_tanyao _ =
   let hand = make_hand ["2m";"3m";"4m";"2p";"3p";"4p";"2s";"3s";"4s";"5s";"5s";"6s";"6s";"6s"] in
-  (* 模拟 Tsumo 算分 *)
   match Hand.calculate_score hand [] [] Tile.East Tile.South true false with
   | None -> assert_failure "Should parse as valid hand"
   | Some result ->
@@ -82,16 +69,12 @@ let test_yaku_tanyao _ =
 
 let test_yaku_yakuhai _ =
   let hand = make_hand ["5z";"5z";"5z";"1m";"2m";"3m";"9p";"9p";"1s";"2s";"3s";"4s";"4s";"4s"] in
-  (* 5z is White Dragon (Haku) *)
   match Hand.calculate_score hand [] [] Tile.East Tile.South true false with
   | None -> assert_failure "Should parse as valid hand"
   | Some result ->
       let has_yakuhai = List.exists result.yaku_list ~f:(function Hand.Score.Yakuhai _ -> true | _ -> false) in
       assert_bool "Should have Yakuhai (White)" has_yakuhai
 
-(* ========================================== *)
-(* 4. Player Tests (Actions & AI) *)
-(* ========================================== *)
 
 let test_find_chi_options _ =
   let p = create_player_with_hand ["2m"; "3m"; "5m"] in
@@ -110,7 +93,7 @@ let test_perform_chi _ =
   match Player.perform_chi p target t1 t2 with
   | None -> assert_failure "Perform chi failed"
   | Some new_p ->
-      assert_equal 1 (List.length (Player.hand new_p)); (* 剩一张 2m *)
+      assert_equal 1 (List.length (Player.hand new_p));
       assert_equal 1 (List.length (Player.melds new_p))
 
 let test_perform_pon _ =
@@ -125,22 +108,18 @@ let test_perform_pon _ =
 let test_ai_difficulties _ =
   let p = create_player_with_hand ["1m";"2m";"3m";"5m";"6m";"7m";"1p";"2p";"3p";"9s";"9s";"1z";"2z";"3z"] in
   
-  (* Easy: Random *)
   let p_easy = Player.set_difficulty p Player.Easy in
   let d_easy = Player.decide_discard p_easy empty_visible [] in
   assert_bool "Easy AI should discard something" (Option.is_some d_easy);
 
-  (* Medium: Efficiency *)
   let p_med = Player.set_difficulty p Player.Medium in
   let d_med = Player.decide_discard p_med empty_visible [] in
   assert_bool "Medium AI should discard something" (Option.is_some d_med);
   
-  (* Hard: Enhanced *)
   let p_hard = Player.set_difficulty p Player.Hard in
   let d_hard = Player.decide_discard p_hard empty_visible [] in
   assert_bool "Hard AI should discard something" (Option.is_some d_hard)
 
-(* 新增：测试字符串输出，覆盖 to_string 代码 *)
 let test_to_string _ =
   let p = create_player_with_hand ["1m"; "2m"] in
   let s = Player.to_string p in
@@ -148,14 +127,10 @@ let test_to_string _ =
   assert_string_contains s "1万";
   assert_string_contains s "2万"
 
-(* ========================================== *)
-(* 5. Game Tests (Flow & Integration) *)
-(* ========================================== *)
 
 let test_game_create _ =
   let g = Game.create () in
   assert_equal 0 (Game.current_player_id g);
-  (* Cheat mode might be on/off, but generally deck should have tiles *)
   assert_bool "Deck check" (Game.remaining_tiles g > 50);
   assert_equal 4 (List.length (Game.all_players g))
 
@@ -171,7 +146,6 @@ let test_draw_and_discard _ =
 
 let test_full_bot_step _ =
   let g = Game.create () in
-  (* Player 0 is usually human, let's force turn to Player 1 (Bot) *)
   let g_p1 = Game.next_turn g in 
   
   let g_after, success = Game.play_bot_step g_p1 in
@@ -180,11 +154,9 @@ let test_full_bot_step _ =
 
 let test_interactions _ =
   let g = Game.create () in
-  (* Force Player 0 hand *)
   let p0 = Player.debug_set_hand (Game.current_player g) (make_hand ["2m";"3m";"1z";"1z"]) in
   let g = Game.debug_set_player g 0 p0 in
   
-  (* Attempt Chi *)
   let target = Tile.Numbered(Tile.Man, 1) in
   let t1 = Tile.Numbered(Tile.Man, 2) in
   let t2 = Tile.Numbered(Tile.Man, 3) in
@@ -209,7 +181,7 @@ let suite =
     "test_draw_discard" >:: test_draw_and_discard;
     "test_full_bot_step" >:: test_full_bot_step;
     "test_interactions" >:: test_interactions;
-    "test_to_string" >:: test_to_string;  (* 注册新测试 *)
+    "test_to_string" >:: test_to_string; 
   ]
 
 let () = run_test_tt_main suite

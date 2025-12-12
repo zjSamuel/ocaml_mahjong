@@ -2,7 +2,6 @@ open Core
 open OUnit2
 open Mahjong
 
-(* 辅助函数：解析牌字符串 (适配 Core) *)
 let parse_tile_str s =
   let val_char = s.[0] in
   let type_char = s.[1] in
@@ -29,7 +28,6 @@ let parse_tile_str s =
 let make_hand str_list = List.map str_list ~f:parse_tile_str
 let empty_visible_counts = Array.create ~len:34 0
 
-(* 测试 1: 七对子 (Seven Pairs) - 确保 A* 能处理特殊牌型 *)
 let test_seven_pairs _ =
   let hand =
     make_hand
@@ -57,7 +55,6 @@ let test_seven_pairs _ =
     (Tile.to_string best_discard)
     score;
 
-  (* 应该切掉 1p 或 2p 这种单张牌 *)
   match best_discard with
   | Tile.Numbered (Tile.Pin, n) when n = 1 || n = 2 ->
       assert_bool "Score should be valid" (score > 0)
@@ -66,7 +63,6 @@ let test_seven_pairs _ =
         (Printf.sprintf "Should discard isolated tile, got %s"
            (Tile.to_string best_discard))
 
-(* 测试 2: 标准牌型 - 简单的进张判断 *)
 let test_standard_hand _ =
   let hand =
     make_hand
@@ -90,14 +86,12 @@ let test_standard_hand _ =
   let recs = Hand.get_recommendations_astar hand empty_visible_counts in
   let best, _ = List.hd_exn recs in
 
-  (* 9p 和 3z 是孤张，切掉它们进张最广 *)
   match best with
   | Tile.Honor Tile.West | Tile.Numbered (Tile.Pin, 9) -> ()
   | _ ->
       assert_failure
         (Printf.sprintf "A* failed, suggested %s" (Tile.to_string best))
 
-(* 测试 3: 清一色复杂牌型 (Chinitsu) - 性能与正确性 *)
 let test_chinitsu _ =
   let hand =
     make_hand
@@ -125,8 +119,6 @@ let test_chinitsu _ =
     ~msg:"Should discard Honor (1z) to reach Tenpai";
   assert_bool "Ukeire should be huge (9-sided wait)" (ukeire >= 20)
 
-(* 新增测试 4: 剩余牌 heuristic 验证 *)
-(* 验证当手牌非常糟糕时，A* 仍能给出合理的“最差中的最好”建议 *)
 let test_garbage_hand _ =
   let hand =
     make_hand
@@ -148,7 +140,6 @@ let test_garbage_hand _ =
       ]
   in
   let recs = Hand.get_recommendations_astar hand empty_visible_counts in
-  (* 任何建议都行，只要程序不崩，且有输出 *)
   assert_bool "Should return recommendations even for garbage"
     (List.length recs > 0)
 

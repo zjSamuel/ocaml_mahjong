@@ -1,10 +1,5 @@
 (* lib/hand.ml *)
 open Core
-
-(* ========================================== *)
-(* 1. Basic Types & Utils *)
-(* ========================================== *)
-
 type meld =
   | Chi of Tile.t * Tile.t * Tile.t
   | Pon of Tile.t * Tile.t * Tile.t
@@ -80,10 +75,6 @@ let is_terminal_or_honor = function
 let is_honor = function Tile.Honor _ -> true | _ -> false
 let get_suit = function Tile.Numbered (s, _) -> Some s | Tile.Honor _ -> None
 
-(* ========================================== *)
-(* 2. A* Search Logic (Shanten Calculation)   *)
-(* ========================================== *)
-
 module DecompositionSearch = struct
   type t = {
     counts : int array;
@@ -110,18 +101,6 @@ module DecompositionSearch = struct
             let c5 = Bool.compare a.has_head b.has_head in
             if c5 <> 0 then c5 else Array.compare Int.compare a.counts b.counts
 
-  (* [A* Heuristic Optimization]
-     We want to minimize Cost. (Start Cost = 8).
-     Melds reduce cost by 2. Head/Tatsu reduce cost by 1.
-     
-     h(n): Estimation of future cost reduction.
-     Every remaining tile can at best contribute to a -1 cost reduction 
-     (e.g., as part of a pair or tatsu, or 3 tiles for -2 is -0.66/tile).
-     
-     h(n) = -1.0 * remaining.
-     This is an Admissible Heuristic (Lower Bound).
-     It ensures we find the optimal Shanten without degenerating to Dijkstra.
-  *)
   let heuristic state = -1.0 *. Float.of_int state.remaining
   let is_goal state = state.idx >= 34
 
@@ -134,16 +113,13 @@ module DecompositionSearch = struct
       else
         let moves = ref [] in
 
-        (* 1. Waste (Skip) *)
         let next_c_skip = Array.copy state.counts in
         next_c_skip.(state.idx) <- c - 1;
         moves :=
           ( { state with counts = next_c_skip; remaining = state.remaining - 1 },
             0.0 )
           :: !moves;
-        (* 2. Meld (Pon) *)
         if state.melds + state.tatsu < 4 then (
-          (* 2. Meld (Pon) *)
           if c >= 3 then (
             let next_c = Array.copy state.counts in
             next_c.(state.idx) <- c - 3;
@@ -156,8 +132,6 @@ module DecompositionSearch = struct
                 },
                 -2.0 )
               :: !moves);
-
-          (* 3. Meld (Chi) *)
           if
             state.idx < 27
             && state.idx % 9 < 7
@@ -177,7 +151,6 @@ module DecompositionSearch = struct
                 },
                 -2.0 )
               :: !moves));
-        (* 4. Head (Pair) *)
         if (not state.has_head) && c >= 2 then (
           let next_c = Array.copy state.counts in
           next_c.(state.idx) <- c - 2;
@@ -191,9 +164,7 @@ module DecompositionSearch = struct
               -1.0 )
             :: !moves);
 
-        (* 5. Tatsu (Partial) *)
         if state.melds + state.tatsu < 4 then (
-          (* Pair Tatsu *)
           if c >= 2 then (
             let next_c = Array.copy state.counts in
             next_c.(state.idx) <- c - 2;
@@ -206,7 +177,6 @@ module DecompositionSearch = struct
                 },
                 -1.0 )
               :: !moves);
-          (* Protosequence *)
           if
             state.idx < 27
             && state.idx % 9 < 8
@@ -224,7 +194,6 @@ module DecompositionSearch = struct
                 },
                 -1.0 )
               :: !moves);
-          (* Kanchan *)
           if
             state.idx < 27
             && state.idx % 9 < 7
@@ -260,13 +229,11 @@ let calculate_standard_shanten counts =
       has_head = false;
     }
   in
-  (* Start Score = 8 *)
   let start_g = 8.0 in
 
   match Solver.search start_node with
   | None -> 8
   | Some (cost_change, _) ->
-      (* cost_change is negative. Shanten = 8 + (-score) *)
       Float.to_int (start_g +. cost_change)
 
 let calculate_chiitoitsu_shanten counts =
@@ -288,9 +255,6 @@ let calculate_shanten hand =
 let is_complete hand = calculate_shanten hand <= -1
 let possible_sets _ = []
 
-(* ========================================== *)
-(* 3. Tile Efficiency & AI Helpers *)
-(* ========================================== *)
 
 let calc_ukeire hand_13 visible_counts =
   let current_shanten = calculate_shanten hand_13 in
@@ -322,9 +286,6 @@ let get_recommendations_astar hand visible_counts =
 
 let calculate_efficiency = get_recommendations_astar
 
-(* ========================================== *)
-(* 4. Yaku & Scoring Logic (Corrected DFS) *)
-(* ========================================== *)
 
 module Score = struct
   type yaku =
@@ -363,7 +324,6 @@ type decomposition = {
   pair : Tile.t list;
 }
 
-(* Corrected DFS Partitioning *)
 let partition_hand (hand : t) : decomposition list =
   let counts = to_frequency_table hand in
   let results = ref [] in
@@ -377,23 +337,18 @@ let partition_hand (hand : t) : decomposition list =
       | None -> ()
     else if counts.(idx) = 0 then solve (idx + 1) seqs trips pair_opt
     else (
-      (* Attempt all valid structures starting with current tile. *)
-
-      (* 1. Pair (Head) *)
       if counts.(idx) >= 2 && Option.is_none pair_opt then (
         counts.(idx) <- counts.(idx) - 2;
         let tile = List.nth_exn all_tile_types idx in
         solve idx seqs trips (Some [ tile; tile ]);
         counts.(idx) <- counts.(idx) + 2 (* Backtrack *));
 
-      (* 2. Triplet (Pon) *)
       if counts.(idx) >= 3 then (
         counts.(idx) <- counts.(idx) - 3;
         let tile = List.nth_exn all_tile_types idx in
         solve idx seqs ([ tile; tile; tile ] :: trips) pair_opt;
         counts.(idx) <- counts.(idx) + 3 (* Backtrack *));
 
-      (* 3. Sequence (Chi) *)
       if
         idx < 27
         && idx % 9 < 7
@@ -419,7 +374,6 @@ let partition_hand (hand : t) : decomposition list =
   solve 0 [] [] None;
   !results
 
-(* Helpers and Yaku checks *)
 let get_all_groups decomp melds =
   decomp.sequences @ decomp.triplets @ [ decomp.pair ]
   @ List.map melds ~f:(function

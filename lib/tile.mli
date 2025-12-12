@@ -1,6 +1,3 @@
-(* Definition of tile types *)
-(** lib/tile.mli *)
-
 (** Definition of tile suits *)
 type suit =
   | Man  (** Characters suit (Manzu) *)

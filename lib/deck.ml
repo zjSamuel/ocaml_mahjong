@@ -1,6 +1,3 @@
-(* deck.ml *)
-(* lib/deck.ml *)
-
 open Core
 
 type t = {
@@ -10,19 +7,16 @@ type t = {
       (** How many dora indicators are currently revealed (1-5) *)
 }
 
-(** Generates a full list of 136 tiles (4 copies of each of the 34 types). *)
 let create_full_list () =
   let suits = [ Tile.Man; Tile.Pin; Tile.Sou ] in
   let numbers = List.init 9 ~f:(fun i -> i + 1) in
   (* [1; ...; 9] *)
 
-  (* Generate Numbered tiles *)
   let numbered =
     List.concat_map suits ~f:(fun s ->
         List.map numbers ~f:(fun n -> Tile.Numbered (s, n)))
   in
 
-  (* Generate Honor tiles *)
   let honors =
     [
       Tile.East;
@@ -37,13 +31,10 @@ let create_full_list () =
   in
 
   let unique_tiles = numbered @ honors in
-  (* Create 4 copies of each tile *)
   List.concat_map unique_tiles ~f:(fun t -> [ t; t; t; t ])
 
-(** Shuffles a list using a random sort approach. *)
 let shuffle_list lst =
   let tagged = List.map lst ~f:(fun x -> (Random.bits (), x)) in
-  (* Sort by the random tag *)
   let sorted =
     List.sort tagged ~compare:(fun (a, _) (b, _) -> Int.compare a b)
   in
@@ -54,7 +45,6 @@ let create () =
 
   let all = shuffle_list (create_full_list ()) in
 
-  (* Split into Dead Wall (14 tiles) and Draw Pile (rest) *)
   let rec split n acc l =
     if n = 0 then (List.rev acc, l)
     else
@@ -73,17 +63,29 @@ let draw deck =
 
 let remaining deck = List.length deck.draw_pile
 
+(* let force_8s_indicator deck =
+  let target_indicator = Tile.Numbered (Tile.Sou, 8) in
+  
+  let new_dead_wall = 
+    match deck.dead_wall with
+    | _ :: rest -> target_indicator :: rest
+    | [] -> [target_indicator]
+  in
+  
+  { deck with 
+    dead_wall = new_dead_wall; 
+    dora_indicators_count = max 1 deck.dora_indicators_count 
+  } *)
 let get_dora_indicators deck =
+  (* let deck = force_8s_indicator deck in *)
   let rec loop n acc =
     if n = 0 then List.rev acc
     else
-      (* Indices in dead wall: 0, 2, 4, 6, 8 are indicators.
-         1, 3, 5, 7, 9 are Ura-dora (hidden) indicators. *)
       let idx = (n - 1) * 2 in
       if idx < List.length deck.dead_wall then
         match List.nth deck.dead_wall idx with
         | Some tile -> loop (n - 1) (tile :: acc)
-        | None -> acc (* Should not happen if logic is correct *)
+        | None -> acc
       else acc
   in
   loop deck.dora_indicators_count []
@@ -94,8 +96,6 @@ let add_dora_indicator deck =
   else deck
 
 let draw_rinshan deck =
-  (* Simplified implementation: Draw from the draw pile for now.
-     Real rules: Draw from dead wall, append from draw pile to dead wall to keep it at 14. *)
   draw deck
 
 let debug_force_next deck tile =
