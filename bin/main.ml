@@ -1,5 +1,9 @@
 open Mahjong
 
+
+(* 1. Helpers & Global State *)
+
+(* Helper to convert string representations back to internal Tile types. *)
 let parse_tile_str s =
   let suits = [ Tile.Man; Tile.Pin; Tile.Sou ] in
   let nums = [ 1; 2; 3; 4; 5; 6; 7; 8; 9 ] in
@@ -27,6 +31,10 @@ let parse_tile_str s =
 
 let game_state_ref = ref (Game.create ())
 
+
+(* 2. View Layer: UI Components, use server-side render*)
+
+(* difficulty badge (Easy/Medium/Hard) *)
 let render_difficulty_badge (diff : Player.difficulty) =
   match diff with
   | Player.Easy ->
@@ -40,6 +48,7 @@ let render_difficulty_badge (diff : Player.difficulty) =
       "<span style='background:#d63031; color:white; padding:2px 6px; \
        border-radius:4px; font-size:0.7em; vertical-align:middle;'>Hard</span>"
 
+(* the control in the sidebar to switch bot difficulty *)
 let render_difficulty_controls (game : Game.t) =
   let players = Game.all_players game in
   let rows =
@@ -88,6 +97,9 @@ let render_difficulty_controls (game : Game.t) =
     \     </div>"
     rows
 
+
+
+(* render the Yaku list and total score *)
 let render_score_result (res : Hand.Score.result) =
   let yaku_rows =
     res.yaku_list
@@ -137,6 +149,7 @@ let render_score_result (res : Hand.Score.result) =
     \     </div>"
     res.han yaku_rows res.fu
 
+(* open melds (Chi/Pon/Kan) for player. *)
 let render_melds (p : Player.t) =
   Player.melds p
   |> List.map (function
@@ -183,6 +196,10 @@ let render_single_tile (tile : Tile.t) (idx : int) (is_clickable : bool)
     Printf.sprintf "<div class='%s' style='%s'>%s</div>" class_str style_extra
       tile_str
 
+
+(* 3. Main Render *)
+
+(* Generate the full HTML page for the current game state. *)
 let render_html (game : Game.t) : string =
   let all_players = Game.all_players game in
   let human_p = List.nth all_players 0 in
@@ -190,6 +207,7 @@ let render_html (game : Game.t) : string =
   let current_idx = Game.current_player_id game in
   let is_my_turn = current_idx = 0 in
 
+  (* determine available actions for the human player *)
   let can_discard = is_my_turn && Player.has_full_hand human_p in
   let can_draw = is_my_turn && not (Player.has_full_hand human_p) in
 
@@ -197,6 +215,8 @@ let render_html (game : Game.t) : string =
   let drawn_opt = Player.last_drawn human_p in
   let last_discard_opt = Game.last_discard game in
 
+  (* AI Assistant, If it's the player's discard turn, call the backend A* algorithm 
+     to render discard recommendations and Ukeire stats.*)
   let suggestion_html =
     if can_discard then
       let visible = Game.get_visible_counts game 0 in
@@ -246,6 +266,8 @@ let render_html (game : Game.t) : string =
        font-size:0.9em; color:#888;'>Waiting for draw...</div></div>"
   in
 
+  (* Dynamic Action Buttons (Chi/Pon/Kan/Ron) *)
+  (* check if user can interrupt with Pon/Kan/Ron based on the last discard. *)
   let action_buttons_html =
     match last_discard_opt with
     | None -> ""
@@ -319,6 +341,8 @@ let render_html (game : Game.t) : string =
           else base_html ^ "</div>"
   in
 
+  (* Game loop auto part  *)
+  (* If not the human's turn and no actions are required, auto run bot *)
   let should_auto_play = (not is_my_turn) && action_buttons_html = "" in
   let auto_play_script =
     if should_auto_play then
@@ -570,6 +594,8 @@ let render_html (game : Game.t) : string =
    |> String.concat " ")
     suggestion_html diff_controls debug_html
 
+
+(* 4. Router and Controller *)
 let () =
   Printexc.record_backtrace true;
   print_endline "Server starting on http://localhost:3000 ...";
@@ -578,7 +604,9 @@ let () =
   @@ Dream.logger
   @@ Dream.router
        [
+        (* GET / : Main entry point, renders the game UI. *)
          Dream.get "/" (fun _ -> Dream.html (render_html !game_state_ref));
+         (* GET /set_diff : Controller to update bot difficulty settings. *)
          Dream.get "/set_diff" (fun req ->
              let p_idx_opt = Dream.query req "p" in
              let diff_str_opt = Dream.query req "d" in
@@ -595,11 +623,13 @@ let () =
                  game_state_ref := Game.set_bot_difficulty g p_idx diff;
                  Dream.redirect req "/"
              | _ -> Dream.redirect req "/");
+        (* POST /draw : Handles the player's draw action. *)
          Dream.post "/draw" (fun req ->
              let g = !game_state_ref in
              let ng, _ = Game.draw_card g in
              game_state_ref := ng;
-             Dream.redirect req "/");
+             Dream.redirect req "/"); (* redirect to refresh view *)
+        (* POST /play : Parses the 'discard_index' from the form data. *)
          Dream.post "/play" (fun req ->
              match%lwt Dream.form ~csrf:false req with
              | `Ok [ ("discard_index", i) ] ->
@@ -614,13 +644,16 @@ let () =
                    game_state_ref := ng1;
                    Dream.redirect req "/"
              | _ -> Dream.redirect req "/");
+        (* POST /bot_move : Executes one step of AI logic and updates the state. *)
          Dream.post "/bot_move" (fun req ->
              let g = !game_state_ref in
              if Game.current_player_id g <> 0 then (
                let ng, _ = Game.play_bot_step g in
                game_state_ref := ng;
-
+              
+              (* Check for AI victory after the move *)
                match Game.winner ng with
+               (* Render the victory screen if AI wins *)
                | Some winner_p ->
                    let indicators = Game.get_dora_indicators ng in
                    let score_res =
@@ -659,6 +692,7 @@ let () =
                | None ->
                    Dream.redirect req "/")
              else Dream.redirect req "/");
+         (* POST /chi : controllers for meld action. *)
          Dream.post "/chi" (fun req ->
              match%lwt Dream.form ~csrf:false req with
              | `Ok form -> (
@@ -677,6 +711,7 @@ let () =
                      | _ -> Dream.redirect req "/")
                  | _ -> Dream.redirect req "/")
              | _ -> Dream.redirect req "/");
+         (* POST /pon : Controller for meld action *)
          Dream.post "/pon" (fun req ->
              match%lwt Dream.form ~csrf:false req with
              | `Ok form -> (
@@ -691,6 +726,7 @@ let () =
                      | None -> Dream.redirect req "/")
                  | None -> Dream.redirect req "/")
              | _ -> Dream.redirect req "/");
+         (* POST /kan : Controller for meld action *)
          Dream.post "/kan" (fun req ->
              match%lwt Dream.form ~csrf:false req with
              | `Ok form -> (
@@ -705,6 +741,7 @@ let () =
                      | None -> Dream.redirect req "/")
                  | None -> Dream.redirect req "/")
              | _ -> Dream.redirect req "/");
+         (* POST /win_ron : Handles the specific win when player calls Ron. *)
          Dream.post "/win_ron" (fun request ->
              match%lwt Dream.form ~csrf:false request with
              | `Ok form -> (
@@ -770,6 +807,7 @@ let () =
                      | None -> Dream.redirect request "/")
                  | None -> Dream.redirect request "/")
              | _ -> Dream.redirect request "/");
+         (* POST /win : Handles the Tsumo (Self-draw) win condition. *)
          Dream.post "/win" (fun _ ->
              let game = !game_state_ref in
              let all_p = Game.all_players game in
@@ -811,6 +849,7 @@ let () =
                     text-align:center; padding-top:50px;'><h1>⚠️ Cannot Win (No \
                     Yaku / 没役)</h1><p>Check your hand again.</p><a href='/' \
                     style='color:#74b9ff'>Back</a></body></html>");
+         (* Resets the game state. *)
          Dream.get "/new_game" (fun req ->
              game_state_ref := Game.create ();
              Dream.redirect req "/");
